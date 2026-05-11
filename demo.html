@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>Albania CTF Panel v3.0 — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--surface:#0a0a12;--card:#0d0d1a;--border:#1a1a2e;--border2:#22223a;
+  --red:#ff2d55;--red-dim:rgba(255,45,85,0.1);--red-glow:rgba(255,45,85,0.35);
+  --cyan:#00d4ff;--green:#00ff88;--yellow:#ffd200;--purple:#a78bfa;
+  --text:#d8e0f0;--muted:#8892b0;--white:#ffffff;
+  --mono:'Space Mono',monospace;--display:'Bebas Neue',sans-serif;--sans:'DM Sans',sans-serif;
+  --nav-w:220px;
+  --radius:8px;
+}
+html{scroll-behavior:smooth;height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,45,85,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,85,0.018) 1px,transparent 1px);
+  background-size:40px 40px}
+
+/* ── TOPBAR ── */
+.topbar{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(5,5,8,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;gap:8px}
+.topbar-left{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.topbar-logo{font-family:var(--display);font-size:1.3rem;color:var(--red);letter-spacing:2px;line-height:1}
+.topbar-sub{font-family:var(--mono);font-size:0.5rem;color:var(--muted);letter-spacing:2px;display:none}
+@media(min-width:480px){.topbar-sub{display:block}}
+.topbar-pills{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;overflow:hidden}
+.tpill{font-family:var(--mono);font-size:0.48rem;letter-spacing:1px;padding:3px 7px;border-radius:3px;border:1px solid;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.tpill-dot{width:5px;height:5px;border-radius:50%;animation:blink .8s infinite}
+.tpill.on{border-color:rgba(0,255,136,.3);color:var(--green)}
+.tpill.on .tpill-dot{background:var(--green)}
+.tpill.off{border-color:rgba(255,45,85,.3);color:var(--red)}
+.tpill.off .tpill-dot{background:var(--red);animation:none}
+.tpill.warn{border-color:rgba(255,210,0,.3);color:var(--yellow)}
+.tpill.warn .tpill-dot{background:var(--yellow)}
+.tick-badge{font-family:var(--mono);font-size:0.55rem;padding:4px 10px;border-radius:4px;background:rgba(255,210,0,.08);border:1px solid rgba(255,210,0,.25);color:var(--yellow);letter-spacing:1px;white-space:nowrap}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.demo-badge{font-family:var(--mono);font-size:0.5rem;padding:3px 9px;border-radius:3px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:var(--purple);letter-spacing:2px}
+.user-btn{font-family:var(--mono);font-size:0.55rem;color:var(--muted);letter-spacing:1px;cursor:pointer;padding:4px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent}
+.ham{display:flex;flex-direction:column;gap:4px;cursor:pointer;padding:4px;border:none;background:transparent}
+.ham span{display:block;width:18px;height:1.5px;background:var(--muted);transition:all .2s}
+@media(min-width:768px){.ham{display:none}}
+
+/* ── LAYOUT ── */
+.layout{display:flex;padding-top:48px;min-height:100vh;position:relative;z-index:1}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--nav-w);background:rgba(8,8,16,.98);border-right:1px solid var(--border);position:fixed;top:48px;bottom:0;left:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;transition:transform .25s cubic-bezier(.4,0,.2,1);z-index:100;padding-bottom:16px}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border2)}
+.sidebar.closed{transform:translateX(-100%)}
+@media(min-width:768px){.sidebar{transform:translateX(0)!important}}
+
+.nav-section{padding:16px 12px 6px;font-family:var(--mono);font-size:0.45rem;color:var(--border2);letter-spacing:3px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-family:var(--mono);font-size:0.6rem;letter-spacing:1px;color:var(--muted);transition:all .15s;border-left:2px solid transparent;user-select:none;white-space:nowrap}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--text)}
+.nav-item.active{background:var(--red-dim);color:var(--red);border-left-color:var(--red)}
+.nav-icon{width:14px;height:14px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;font-size:0.45rem;padding:1px 6px;border-radius:10px;background:rgba(255,45,85,.15);color:var(--red);border:1px solid rgba(255,45,85,.2)}
+.nav-badge.green{background:rgba(0,255,136,.12);color:var(--green);border-color:rgba(0,255,136,.2)}
+
+/* ── MAIN ── */
+.main{flex:1;margin-left:0;padding:24px 16px;transition:margin .25s}
+@media(min-width:768px){.main{margin-left:var(--nav-w);padding:28px 28px}}
+
+.page{display:none}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.page-title{font-family:var(--display);font-size:clamp(1.6rem,5vw,2.4rem);letter-spacing:4px;color:#fff;text-shadow:0 0 40px var(--red-glow);line-height:1}
+.page-sub{font-family:var(--mono);font-size:0.58rem;color:#fff;letter-spacing:2px;margin-top:4px;margin-bottom:20px;opacity:.7}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,85,.12),transparent)}
+.card-title{font-family:var(--mono);font-size:0.62rem;letter-spacing:2px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title-icon{color:var(--red);font-size:0.7rem}
+
+/* ── GRID ── */
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.g3,.g4{grid-template-columns:1fr 1fr}}
+
+/* ── STATS ── */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;position:relative;overflow:hidden;transition:border-color .2s}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent,var(--red))}
+.stat-val{font-family:var(--display);font-size:clamp(1.4rem,4vw,2rem);color:var(--accent,var(--red));line-height:1;letter-spacing:2px}
+.stat-lbl{font-family:var(--mono);font-size:0.48rem;color:var(--muted);letter-spacing:2px;margin-top:4px}
+
+/* ── BUTTONS ── */
+.btn{font-family:var(--mono);font-size:0.62rem;letter-spacing:1px;padding:7px 14px;border-radius:5px;border:1px solid;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-red{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+.btn-red:hover{background:rgba(255,45,85,.2)}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text)}
+.btn-green{background:rgba(0,255,136,.08);border-color:rgba(0,255,136,.4);color:var(--green)}
+.btn-green:hover{background:rgba(0,255,136,.15)}
+.btn-cyan{background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.4);color:var(--cyan)}
+.btn-sm{padding:4px 10px;font-size:0.55rem}
+
+/* ── STATUS DOTS / BADGES ── */
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-red{background:var(--red)}
+.dot-yellow{background:var(--yellow);animation:blink .9s infinite}
+.badge{font-family:var(--mono);font-size:0.48rem;padding:2px 7px;border-radius:3px;letter-spacing:1px;font-weight:700}
+.badge-green{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+.badge-red{background:rgba(255,45,85,.1);color:var(--red);border:1px solid rgba(255,45,85,.2)}
+.badge-yellow{background:rgba(255,210,0,.1);color:var(--yellow);border:1px solid rgba(255,210,0,.2)}
+.badge-cyan{background:rgba(0,212,255,.1);color:var(--cyan);border:1px solid rgba(0,212,255,.2)}
+
+/* ── EKG ── */
+.ekg-wrap{height:60px;position:relative;overflow:hidden;border-radius:4px;background:#010104}
+.ekg-svg{width:100%;height:100%}
+.ekg-line{fill:none;stroke:var(--green);stroke-width:1.5;filter:drop-shadow(0 0 3px var(--green))}
+
+/* ── LOG ── */
+.log-box{background:#02020a;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:0.58rem;line-height:1.8;max-height:180px;overflow-y:auto;color:var(--muted)}
+.log-box::-webkit-scrollbar{width:3px}
+.log-box::-webkit-scrollbar-thumb{background:var(--border2)}
+.log-box .ok{color:var(--green)}
+.log-box .err{color:var(--red)}
+.log-box .warn{color:var(--yellow)}
+.log-box .inf{color:var(--cyan)}
+.log-box .dim{color:#2a2a40}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:0.58rem}
+.tbl th{padding:8px 10px;text-align:left;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--border);font-weight:400}
+.tbl td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── AI EXPLOITS ── */
+.aie-slot{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .25s;margin-bottom:8px}
+.aie-slot.s-running{border-color:rgba(0,255,136,.45);background:rgba(0,255,136,.02)}
+.aie-slot.s-ready{border-color:rgba(0,255,136,.3)}
+.aie-slot.s-analyzing{border-color:rgba(0,212,255,.4);background:rgba(0,212,255,.02)}
+.aie-slot.s-generating{border-color:rgba(167,139,250,.4);background:rgba(167,139,250,.02)}
+.aie-slot.s-idle{border-color:var(--border)}
+.aie-head{display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer}
+.aie-head:hover{background:rgba(255,255,255,.02)}
+.aie-num{font-family:var(--mono);font-size:0.52rem;color:var(--muted);min-width:20px;letter-spacing:1px}
+.aie-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.aie-dot.s-idle{background:#1e1e30}
+.aie-dot.s-running{background:var(--green);animation:blink .45s infinite;box-shadow:0 0 5px var(--green)}
+.aie-dot.s-ready{background:var(--green)}
+.aie-dot.s-analyzing{background:var(--cyan);animation:blink .7s infinite}
+.aie-dot.s-generating{background:var(--purple);animation:blink .5s infinite}
+.aie-svc{flex:1;font-family:var(--mono);font-size:0.72rem;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;letter-spacing:1px;min-width:0;cursor:default}
+.aie-port{font-family:var(--mono);font-size:0.6rem;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:3px;padding:3px 7px}
+.aie-stlbl{font-family:var(--mono);font-size:0.52rem;letter-spacing:2px;min-width:88px;text-align:right;color:var(--muted)}
+.aie-stlbl.s-running{color:var(--green)}
+.aie-stlbl.s-ready{color:var(--green)}
+.aie-stlbl.s-analyzing{color:var(--cyan)}
+.aie-stlbl.s-generating{color:var(--purple)}
+.aie-flags{font-family:var(--mono);font-size:0.52rem;color:var(--green);padding:2px 8px;border-radius:3px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);display:none}
+.aie-slot.s-running .aie-flags,.aie-slot.s-ready .aie-flags{display:inline}
+.aie-body{border-top:1px solid var(--border);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.aie-prog-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.aie-prog-fill{height:100%;border-radius:2px;transition:width .8s ease,background .3s}
+.aie-log-mini{background:#01010a;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:var(--mono);font-size:0.55rem;line-height:1.7;max-height:90px;overflow-y:auto;color:#3a3a55}
+.aie-log-mini .ok{color:var(--green)} .aie-log-mini .inf{color:var(--cyan)} .aie-log-mini .warn{color:var(--yellow)}
+.aie-btns{display:flex;gap:5px;flex-shrink:0}
+.aie-btn-run{font-family:var(--mono);font-size:0.55rem;letter-spacing:1px;padding:4px 9px;border-radius:3px;border:1px solid var(--green);color:var(--green);background:transparent;cursor:default}
+.aie-btn-pause{font-family:var(--mono);font-size:0.55rem;letter-spacing:1px;padding:4px 9px;border-radius:3px;border:1px solid var(--yellow);color:var(--yellow);background:transparent;cursor:default;opacity:.5}
+.aie-btn-stop{font-family:var(--mono);font-size:0.55rem;letter-spacing:1px;padding:4px 9px;border-radius:3px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:default;opacity:.5}
+
+/* ── TEAMS GRID ── */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:10px 12px;cursor:default;transition:all .2s;position:relative;overflow:hidden}
+.team-card:hover{border-color:var(--border2);background:rgba(255,255,255,.03)}
+.team-card.us{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.04)}
+.team-card.us::after{content:'US';position:absolute;top:4px;right:6px;font-family:var(--mono);font-size:0.38rem;color:var(--red);letter-spacing:1px}
+.team-id{font-family:var(--mono);font-size:0.48rem;color:var(--muted);letter-spacing:1px;margin-bottom:3px}
+.team-name{font-family:var(--mono);font-size:0.6rem;font-weight:700;color:var(--text);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-ip{font-family:var(--mono);font-size:0.5rem;color:var(--cyan);margin-top:3px}
+.team-status{width:5px;height:5px;border-radius:50%;background:var(--green);position:absolute;top:10px;right:10px}
+.team-status.down{background:var(--red);animation:none}
+
+/* ── EXPLOIT LIST ── */
+.exploit-item{background:var(--card);border:1px solid var(--border);border-radius:5px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color .2s}
+.exploit-item.running{border-color:rgba(0,255,136,.3)}
+.exploit-name{font-family:var(--mono);font-size:0.7rem;font-weight:700;color:var(--text);flex:1;letter-spacing:1px}
+.exploit-meta{font-family:var(--mono);font-size:0.5rem;color:var(--muted);margin-top:2px;letter-spacing:1px}
+.exploit-flags{font-family:var(--display);font-size:1.2rem;color:var(--green);letter-spacing:2px;min-width:40px;text-align:right}
+
+/* ── TOOLS ── */
+.tool-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:10px;transition:border-color .2s}
+.tool-card.on{border-color:rgba(0,255,136,.3)}
+.tool-icon{font-size:1.2rem;width:36px;text-align:center;flex-shrink:0}
+.tool-info{flex:1;min-width:0}
+.tool-name{font-family:var(--mono);font-size:0.68rem;font-weight:700;color:var(--text);letter-spacing:2px}
+.tool-desc{font-family:var(--mono);font-size:0.52rem;color:var(--muted);margin-top:3px;letter-spacing:1px}
+.tool-actions{display:flex;gap:6px;flex-shrink:0}
+
+/* ── FORM ── */
+.form-input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:5px;padding:8px 12px;color:var(--text);font-family:var(--mono);font-size:0.65rem;outline:none;transition:border-color .15s}
+.form-input:focus{border-color:rgba(255,45,85,.4)}
+.form-input::placeholder{color:#2a2a40}
+.form-label{font-family:var(--mono);font-size:0.52rem;color:var(--muted);letter-spacing:2px;display:block;margin-bottom:5px}
+.form-group{margin-bottom:12px}
+.flex{display:flex} .gap-1{gap:8px} .items-center{align-items:center} .flex-1{flex:1} .mb-2{margin-bottom:12px} .mt-1{margin-top:8px} .text-xs{font-size:0.58rem} .text-mono{font-family:var(--mono)} .text-muted{color:var(--muted)}
+
+/* ── DEMO OVERLAY ── */
+.demo-overlay{position:fixed;bottom:16px;right:16px;background:rgba(10,10,20,.95);border:1px solid rgba(167,139,250,.3);border-radius:8px;padding:12px 16px;z-index:500;max-width:260px;backdrop-filter:blur(10px)}
+.demo-overlay-title{font-family:var(--mono);font-size:0.6rem;color:var(--purple);letter-spacing:2px;margin-bottom:6px;font-weight:700}
+.demo-overlay-text{font-family:var(--mono);font-size:0.55rem;color:var(--muted);line-height:1.6;letter-spacing:.5px}
+.demo-overlay a{color:var(--cyan);text-decoration:none}
+.demo-overlay a:hover{text-decoration:underline}
+.demo-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.7rem;line-height:1}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* ── MOBILE OVERLAY ── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+.sidebar-overlay.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <button class="ham" onclick="toggleSidebar()" aria-label="menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-logo">🦅 ALBANIA</div>
+    <div class="topbar-sub">EDISON PLAKU · ATTACK&amp;DEFENSE</div>
+  </div>
+  <div class="topbar-pills" id="statusPills">
+    <div class="tpill on"><span class="tpill-dot"></span>VPN</div>
+    <div class="tpill on" id="pill-tulip"><span class="tpill-dot"></span>TULIP</div>
+    <div class="tpill on" id="pill-farm"><span class="tpill-dot"></span>S4DFARM</div>
+    <div class="tpill warn" id="pill-pcap"><span class="tpill-dot"></span>PCAP</div>
+    <div class="tick-badge" id="tickBadge">TICK 248 · 38s</div>
+  </div>
+  <div class="topbar-right">
+    <div class="demo-badge">DEMO</div>
+    <div class="user-btn">ADMIN ▾</div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar closed" id="sidebar">
+  <div class="nav-section">OVERVIEW</div>
+  <div class="nav-item active" data-page="dashboard" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    DASHBOARD
+  </div>
+
+  <div class="nav-section">INFRASTRUCTURE</div>
+  <div class="nav-item" data-page="setup" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+    SETUP
+  </div>
+  <div class="nav-item" data-page="vulnbox" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    VULNBOX
+  </div>
+  <div class="nav-item" data-page="tools" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+    TOOLS
+  </div>
+
+  <div class="nav-section">OFFENSE</div>
+  <div class="nav-item" data-page="exploits" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    EXPLOITS
+    <span class="nav-badge green">3</span>
+  </div>
+  <div class="nav-item" data-page="ai-exploits" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><circle cx="8" cy="10" r="1.5"/><path d="M14 8h4M14 12h2"/></svg>
+    AI EXPLOITS
+    <span class="nav-badge green">2</span>
+  </div>
+  <div class="nav-item" data-page="ldf" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    LDF FARM
+  </div>
+
+  <div class="nav-section">INTEL</div>
+  <div class="nav-item" data-page="teams" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    TEAMS
+    <span class="nav-badge">87</span>
+  </div>
+  <div class="nav-item" data-page="flags" onclick="nav(this)">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+    FLAGS
+    <span class="nav-badge green">412</span>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="layout">
+<div class="main" id="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="page-dashboard" class="page active">
+  <div class="page-title">DASHBOARD</div>
+  <div class="page-sub">LIVE STATUS · ALBANIA TEAM #85</div>
+
+  <div class="grid g4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val" id="d-acc">412</div><div class="stat-lbl">FLAGS ACCEPTED</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="stat-val" id="d-rej">23</div><div class="stat-lbl">REJECTED</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val" id="d-rank">3RD</div><div class="stat-lbl">SCOREBOARD</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val" id="d-tick">248</div><div class="stat-lbl">CURRENT TICK</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◈</span>SERVICE HEALTH EKG</div>
+    <div class="ekg-wrap">
+      <svg class="ekg-svg" viewBox="0 0 800 60" preserveAspectRatio="none" id="ekgSvg">
+        <polyline class="ekg-line" id="ekgLine" points=""/>
+      </svg>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap">
+      <span style="font-family:var(--mono);font-size:0.5rem;color:var(--green);letter-spacing:1px">● web_challenge UP 248 ticks</span>
+      <span style="font-family:var(--mono);font-size:0.5rem;color:var(--green);letter-spacing:1px">● db_service UP 248 ticks</span>
+      <span style="font-family:var(--mono);font-size:0.5rem;color:var(--yellow);letter-spacing:1px">● api_gateway DEGRADED</span>
+      <span style="font-family:var(--mono);font-size:0.5rem;color:var(--green);letter-spacing:1px">● auth_svc UP 246 ticks</span>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">≡</span>RECENT EVENTS</div>
+      <div class="log-box" id="dashLog">
+        <span class="ok">[14:02:11] FLAG ACCEPTED · web_challenge · team_42</span><br>
+        <span class="ok">[14:02:09] FLAG ACCEPTED · web_challenge · team_17</span><br>
+        <span class="warn">[14:02:07] SLA CHECK · api_gateway degraded</span><br>
+        <span class="ok">[14:02:05] FLAG ACCEPTED · db_service · team_31</span><br>
+        <span class="inf">[14:01:58] TICK 248 started</span><br>
+        <span class="ok">[14:01:55] FLAG ACCEPTED · auth_svc · team_09</span><br>
+        <span class="ok">[14:01:52] FLAG ACCEPTED · web_challenge · team_55</span><br>
+        <span class="inf">[14:01:48] AI agent slot#1 exploit deployed</span><br>
+        <span class="ok">[14:01:45] FLAG ACCEPTED · web_challenge · team_71</span><br>
+        <span class="dim">[14:01:40] PCAP sync complete · 14 files</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◎</span>FLAG STATS</div>
+      <table class="tbl">
+        <tr><th>SERVICE</th><th>FLAGS</th><th>STATUS</th></tr>
+        <tr><td>web_challenge</td><td style="color:var(--green)">187</td><td><span class="badge badge-green">ACTIVE</span></td></tr>
+        <tr><td>db_service</td><td style="color:var(--green)">134</td><td><span class="badge badge-green">ACTIVE</span></td></tr>
+        <tr><td>auth_svc</td><td style="color:var(--green)">91</td><td><span class="badge badge-green">ACTIVE</span></td></tr>
+        <tr><td>api_gateway</td><td style="color:var(--yellow)">0</td><td><span class="badge badge-yellow">PATCHING</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AI EXPLOITS ═══ -->
+<div id="page-ai-exploits" class="page">
+  <div class="page-title">AI EXPLOITS</div>
+  <div class="page-sub">AUTONOMOUS EXPLOIT GENERATION · TULIP INTEGRATION</div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-family:var(--mono);font-size:0.52rem;color:var(--muted);letter-spacing:2px">AI</span>
+      <div style="display:flex;border:1px solid var(--border2);border-radius:4px;overflow:hidden">
+        <div style="font-family:var(--mono);font-size:0.6rem;padding:5px 12px;background:var(--red-dim);color:var(--red);letter-spacing:1px">CLAUDE</div>
+        <div style="font-family:var(--mono);font-size:0.6rem;padding:5px 12px;color:var(--muted);letter-spacing:1px">OLLAMA</div>
+      </div>
+      <span style="font-family:var(--mono);font-size:0.5rem;color:var(--green);letter-spacing:1px">● claude-sonnet-4 connected</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="btn btn-red btn-sm">⚡ RUN ALL</div>
+      <div class="btn btn-ghost btn-sm">■ STOP ALL</div>
+      <div class="btn btn-sm" style="border-color:rgba(0,212,255,.4);color:var(--cyan)">⚙ API CONFIG</div>
+      <span style="font-family:var(--mono);font-size:0.52rem;color:var(--green);letter-spacing:2px">2 AGENTS ACTIVE</span>
+    </div>
+  </div>
+
+  <!-- Slot 1 — running -->
+  <div class="aie-slot s-running">
+    <div class="aie-head">
+      <span class="aie-num">#1</span>
+      <span class="aie-dot s-running"></span>
+      <span class="aie-svc">web_challenge</span>
+      <span class="aie-port">8080</span>
+      <span class="aie-flags">187 flags</span>
+      <span class="aie-stlbl s-running" style="margin-left:auto">RUNNING</span>
+      <div class="aie-btns" style="margin-left:8px">
+        <div class="aie-btn-run" style="opacity:.4">▶ RUN</div>
+        <div class="aie-btn-pause" style="opacity:1;border-color:var(--yellow);color:var(--yellow)">⏸ PAUSE</div>
+        <div class="aie-btn-stop" style="opacity:1">■ STOP</div>
+      </div>
+    </div>
+    <div class="aie-body">
+      <div class="aie-prog-bar"><div class="aie-prog-fill" style="width:100%;background:var(--green)"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge badge-green">port 8080</span>
+        <span class="badge badge-cyan">23 flows analyzed</span>
+        <span class="badge badge-green">187 flags</span>
+        <span class="badge" style="background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2)">exploit ready</span>
+      </div>
+      <div class="aie-log-mini">
+        <span class="ok">[14:02:11] FLAG #187: A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z=</span><br>
+        <span class="ok">[14:02:09] FLAG #186: B7X2L5M9K3P8Q1N4R6C0T7Y2W5Z=</span><br>
+        <span class="ok">[14:02:07] FLAG #185: C1M4X8L2K7P3Q9N0R5C8T1Y6W3Z=</span><br>
+        <span class="inf">[14:02:05] Targeting 86 enemy teams · threading 20</span><br>
+        <span class="ok">[14:01:58] Exploit deployed → exploits/web_challenge_ai.py</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slot 2 — running -->
+  <div class="aie-slot s-running">
+    <div class="aie-head">
+      <span class="aie-num">#2</span>
+      <span class="aie-dot s-running"></span>
+      <span class="aie-svc">db_service</span>
+      <span class="aie-port">5432</span>
+      <span class="aie-flags">134 flags</span>
+      <span class="aie-stlbl s-running" style="margin-left:auto">RUNNING</span>
+      <div class="aie-btns" style="margin-left:8px">
+        <div class="aie-btn-run" style="opacity:.4">▶ RUN</div>
+        <div class="aie-btn-pause" style="opacity:1;border-color:var(--yellow);color:var(--yellow)">⏸ PAUSE</div>
+        <div class="aie-btn-stop" style="opacity:1">■ STOP</div>
+      </div>
+    </div>
+    <div class="aie-body">
+      <div class="aie-prog-bar"><div class="aie-prog-fill" style="width:100%;background:var(--green)"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge badge-green">port 5432</span>
+        <span class="badge badge-cyan">18 flows analyzed</span>
+        <span class="badge badge-green">134 flags</span>
+        <span class="badge" style="background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2)">exploit ready</span>
+      </div>
+      <div class="aie-log-mini">
+        <span class="ok">[14:02:10] FLAG #134: D4N7X1L3K9P2Q6M8R0C3T9Y4W7Z=</span><br>
+        <span class="ok">[14:02:08] FLAG #133: E8M1X5L9K4P7Q2N3R6C1T4Y8W2Z=</span><br>
+        <span class="inf">[14:01:55] SQL injection payload confirmed · 86 teams</span><br>
+        <span class="ok">[14:01:49] Exploit deployed → exploits/db_service_ai.py</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slot 3 — generating -->
+  <div class="aie-slot s-generating">
+    <div class="aie-head">
+      <span class="aie-num">#3</span>
+      <span class="aie-dot s-generating"></span>
+      <span class="aie-svc">auth_svc</span>
+      <span class="aie-port">3000</span>
+      <span class="aie-stlbl s-generating" style="margin-left:auto">GENERATING</span>
+      <div class="aie-btns" style="margin-left:8px">
+        <div class="aie-btn-run" style="opacity:.4">▶ RUN</div>
+        <div class="aie-btn-pause">⏸ PAUSE</div>
+        <div class="aie-btn-stop" style="opacity:.4">■ STOP</div>
+      </div>
+    </div>
+    <div class="aie-body">
+      <div class="aie-prog-bar"><div class="aie-prog-fill" id="genFill" style="width:72%;background:var(--purple)"></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge" style="background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2)">port 3000</span>
+        <span class="badge badge-cyan">11 flows analyzed</span>
+        <span class="badge" style="background:rgba(167,139,250,.1);color:var(--purple);border:1px solid rgba(167,139,250,.2)">AI generating...</span>
+      </div>
+      <div class="aie-log-mini">
+        <span style="color:var(--purple)">[14:02:08] Sending 11 flows to CLAUDE for analysis...</span><br>
+        <span class="inf">[14:02:06] Filtered to 11 flag-out flows</span><br>
+        <span class="inf">[14:02:03] Tulip returned 14 flows</span><br>
+        <span class="inf">[14:02:01] Agent started for service 'auth_svc' port 3000</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slots 4 & 5 — idle -->
+  <div class="aie-slot s-idle">
+    <div class="aie-head">
+      <span class="aie-num">#4</span>
+      <span class="aie-dot s-idle"></span>
+      <span class="aie-svc" style="color:var(--muted)">service_name</span>
+      <span class="aie-port" style="color:#2a2a40">22</span>
+      <span class="aie-stlbl" style="margin-left:auto">IDLE</span>
+      <div class="aie-btns" style="margin-left:8px">
+        <div class="aie-btn-run">▶ RUN</div>
+        <div class="aie-btn-pause">⏸ PAUSE</div>
+        <div class="aie-btn-stop">■ STOP</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aie-slot s-idle">
+    <div class="aie-head">
+      <span class="aie-num">#5</span>
+      <span class="aie-dot s-idle"></span>
+      <span class="aie-svc" style="color:var(--muted)">service_name</span>
+      <span class="aie-port" style="color:#2a2a40">9000</span>
+      <span class="aie-stlbl" style="margin-left:auto">IDLE</span>
+      <div class="aie-btns" style="margin-left:8px">
+        <div class="aie-btn-run">▶ RUN</div>
+        <div class="aie-btn-pause">⏸ PAUSE</div>
+        <div class="aie-btn-stop">■ STOP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EXPLOITS ═══ -->
+<div id="page-exploits" class="page">
+  <div class="page-title">EXPLOITS</div>
+  <div class="page-sub">ATTACK AUTOMATION ENGINE</div>
+  <div class="grid g3 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">3</div><div class="stat-lbl">RUNNING</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val">412</div><div class="stat-lbl">FLAGS TOTAL</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val">86</div><div class="stat-lbl">TEAMS HIT</div></div>
+  </div>
+  <div class="exploit-item running">
+    <div class="dot dot-green" style="animation:blink .5s infinite"></div>
+    <div style="flex:1;min-width:0">
+      <div class="exploit-name">web_rce.py</div>
+      <div class="exploit-meta">web_challenge · port 8080 · PID 14821 · running 48 min</div>
+    </div>
+    <div class="exploit-flags">187</div>
+    <div class="btn btn-ghost btn-sm">■ STOP</div>
+  </div>
+  <div class="exploit-item running">
+    <div class="dot dot-green" style="animation:blink .6s infinite"></div>
+    <div style="flex:1;min-width:0">
+      <div class="exploit-name">db_sqli.py</div>
+      <div class="exploit-meta">db_service · port 5432 · PID 14844 · running 41 min</div>
+    </div>
+    <div class="exploit-flags">134</div>
+    <div class="btn btn-ghost btn-sm">■ STOP</div>
+  </div>
+  <div class="exploit-item running">
+    <div class="dot dot-green" style="animation:blink .7s infinite"></div>
+    <div style="flex:1;min-width:0">
+      <div class="exploit-name">auth_bypass.py</div>
+      <div class="exploit-meta">auth_svc · port 3000 · PID 14901 · running 22 min</div>
+    </div>
+    <div class="exploit-flags">91</div>
+    <div class="btn btn-ghost btn-sm">■ STOP</div>
+  </div>
+  <div class="exploit-item">
+    <div class="dot" style="background:#1e1e30"></div>
+    <div style="flex:1;min-width:0">
+      <div class="exploit-name">api_fuzz.py</div>
+      <div class="exploit-meta">api_gateway · port 443 · stopped · last run 12 min ago</div>
+    </div>
+    <div class="exploit-flags" style="color:var(--muted)">0</div>
+    <div class="btn btn-green btn-sm">▶ RUN</div>
+  </div>
+</div>
+
+<!-- ═══ TEAMS ═══ -->
+<div id="page-teams" class="page">
+  <div class="page-title">TEAMS</div>
+  <div class="page-sub">ENEMY TARGETS · 87 TOTAL</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◎</span>TARGET MAP</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <input class="form-input" placeholder="Search team..." style="max-width:200px;flex:1"/>
+      <div class="btn btn-ghost btn-sm">↻ REFRESH</div>
+      <span style="font-family:var(--mono);font-size:0.52rem;color:var(--muted);align-self:center">82 online · 5 down</span>
+    </div>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ TOOLS ═══ -->
+<div id="page-tools" class="page">
+  <div class="page-title">TOOLS</div>
+  <div class="page-sub">TULIP · S4DFARM · PCAP SYNC</div>
+  <div class="tool-card on">
+    <div class="tool-icon">🔭</div>
+    <div class="tool-info">
+      <div class="tool-name">TULIP</div>
+      <div class="tool-desc">Traffic analyzer · 14,822 flows indexed · port 3000</div>
+    </div>
+    <div class="tool-actions">
+      <span class="badge badge-green">RUNNING</span>
+      <div class="btn btn-ghost btn-sm">OPEN ↗</div>
+      <div class="btn btn-ghost btn-sm">■ STOP</div>
+    </div>
+  </div>
+  <div class="tool-card on">
+    <div class="tool-icon">🚩</div>
+    <div class="tool-info">
+      <div class="tool-name">S4DFARM</div>
+      <div class="tool-desc">Flag farm · 412 submitted · 23 rejected · port 5137</div>
+    </div>
+    <div class="tool-actions">
+      <span class="badge badge-green">RUNNING</span>
+      <div class="btn btn-ghost btn-sm">OPEN ↗</div>
+      <div class="btn btn-ghost btn-sm">■ STOP</div>
+    </div>
+  </div>
+  <div class="tool-card">
+    <div class="tool-icon">📡</div>
+    <div class="tool-info">
+      <div class="tool-name">PCAP SYNC</div>
+      <div class="tool-desc">Last sync 4 min ago · 200 files · /opt/pcap</div>
+    </div>
+    <div class="tool-actions">
+      <span class="badge badge-yellow">DEGRADED</span>
+      <div class="btn btn-green btn-sm">▶ RESTART</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FLAGS ═══ -->
+<div id="page-flags" class="page">
+  <div class="page-title">FLAGS</div>
+  <div class="page-sub">CAPTURE &amp; SUBMIT ENGINE</div>
+  <div class="grid g4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">412</div><div class="stat-lbl">ACCEPTED</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="stat-val">23</div><div class="stat-lbl">REJECTED</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val">8</div><div class="stat-lbl">QUEUED</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val">443</div><div class="stat-lbl">TOTAL</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">↑</span>SUBMIT</div>
+      <div class="form-group"><label class="form-label">FLAGS (ONE PER LINE)</label>
+        <textarea class="form-input" rows="5" placeholder="A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z="></textarea></div>
+      <div class="btn btn-red">Submit Flags</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">≡</span>LIVE LOG</div>
+      <div class="log-box">
+        <span class="ok">[14:02:11] ACCEPTED · A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z=</span><br>
+        <span class="ok">[14:02:09] ACCEPTED · B7X2L5M9K3P8Q1N4R6C0T7Y2W5Z=</span><br>
+        <span class="ok">[14:02:07] ACCEPTED · C1M4X8L2K7P3Q9N0R5C8T1Y6W3Z=</span><br>
+        <span class="err">[14:02:05] REJECTED · D4N7X1L3K9P2Q6M8R0C3T9Y4W7Z= (expired)</span><br>
+        <span class="ok">[14:02:03] ACCEPTED · E8M1X5L9K4P7Q2N3R6C1T4Y8W2Z=</span><br>
+        <span class="ok">[14:01:59] ACCEPTED · F2X7L4M1K8P5Q3N9R2C6T0Y7W4Z=</span><br>
+        <span class="warn">[14:01:57] QUEUED · 8 flags pending rate limit</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VULNBOX ═══ -->
+<div id="page-vulnbox" class="page">
+  <div class="page-title">VULNBOX</div>
+  <div class="page-sub">REMOTE MANAGEMENT · 10.60.85.1</div>
+  <div class="grid g4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">4</div><div class="stat-lbl">SERVICES UP</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val">1.2GB</div><div class="stat-lbl">RAM FREE</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val">23%</div><div class="stat-lbl">CPU</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">ON</div><div class="stat-lbl">WATCHDOG</div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">$_</span>SSH CONSOLE</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <div class="btn btn-ghost btn-sm">docker ps</div>
+        <div class="btn btn-ghost btn-sm">free -h</div>
+        <div class="btn btn-ghost btn-sm">ss -tlnp</div>
+        <div class="btn btn-ghost btn-sm">df -h</div>
+      </div>
+      <div class="log-box" style="color:var(--green)">
+        <span class="dim">$ docker ps</span><br>
+        <span>CONTAINER ID   IMAGE          STATUS</span><br>
+        <span class="ok">a1b2c3d4e5f6   web_challenge  Up 3 hours</span><br>
+        <span class="ok">b2c3d4e5f6a7   db_service     Up 3 hours</span><br>
+        <span class="ok">c3d4e5f6a7b8   auth_svc       Up 3 hours</span><br>
+        <span class="warn">d4e5f6a7b8c9   api_gateway    Up 3 hours (unhealthy)</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">⊕</span>QUICK ACTIONS</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="btn btn-ghost">💾 Backup /root /home /opt</div>
+        <div class="btn btn-ghost">🐕 Watchdog Status</div>
+        <div class="btn btn-ghost">🔥 Setup Firewall</div>
+        <div class="btn btn-ghost">🔑 Rotate Password</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LDF ═══ -->
+<div id="page-ldf" class="page">
+  <div class="page-title">LDF FARM</div>
+  <div class="page-sub">RATE LIMITED FLAG SUBMISSION</div>
+  <div class="grid g4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">5/s</div><div class="stat-lbl">RATE</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val">8</div><div class="stat-lbl">QUEUED</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">412</div><div class="stat-lbl">SUBMITTED</div></div>
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val">ON</div><div class="stat-lbl">STATUS</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">⚡</span>LDF RUNNING · 5 flags/sec · 0.2s delay</div>
+    <div class="log-box">
+      <span class="ok">[14:02:11] BATCH · 5 flags sent · 5 accepted</span><br>
+      <span class="ok">[14:01:58] BATCH · 5 flags sent · 4 accepted · 1 expired</span><br>
+      <span class="ok">[14:01:45] BATCH · 5 flags sent · 5 accepted</span><br>
+      <span class="inf">[14:01:32] LDF started · rate: 5/s · delay: 0.2s</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETUP ═══ -->
+<div id="page-setup" class="page">
+  <div class="page-title">SETUP</div>
+  <div class="page-sub">COMPETITION CONFIGURATION</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◉</span>COMPETITION SETTINGS</div>
+    <div class="grid g2">
+      <div class="form-group"><label class="form-label">VULNBOX IP</label><input class="form-input" value="10.60.85.1"/></div>
+      <div class="form-group"><label class="form-label">GAMESERVER IP</label><input class="form-input" value="10.10.0.1"/></div>
+      <div class="form-group"><label class="form-label">TEAM ID</label><input class="form-input" value="85"/></div>
+      <div class="form-group"><label class="form-label">TEAM TOKEN</label><input class="form-input" type="password" value="***token***"/></div>
+      <div class="form-group"><label class="form-label">TICK DURATION (s)</label><input class="form-input" value="120"/></div>
+      <div class="form-group"><label class="form-label">TOTAL TEAMS</label><input class="form-input" value="87"/></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <div class="btn btn-red">Save Config</div>
+      <div class="btn btn-ghost">Test Connections</div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- DEMO OVERLAY -->
+<div class="demo-overlay" id="demoOverlay">
+  <button class="demo-close" onclick="document.getElementById('demoOverlay').remove()">✕</button>
+  <div class="demo-overlay-title">🦅 DEMO MODE</div>
+  <div class="demo-overlay-text">
+    This is a read-only UI demo.<br>
+    All data is simulated.<br><br>
+    <a href="https://github.com/exploitcartel/albania-ctf-panel" target="_blank">⭐ Star on GitHub</a><br>
+    <a href="https://github.com/exploitcartel/albania-ctf-panel#readme" target="_blank">📖 Read the docs</a>
+  </div>
+</div>
+
+<script>
+// ── NAV ──
+function nav(el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  const p=document.getElementById('page-'+el.dataset.page);
+  if(p)p.classList.add('active');
+  // close sidebar on mobile
+  if(window.innerWidth<768)toggleSidebar(false);
+}
+
+// ── SIDEBAR MOBILE ──
+let sidebarOpen=false;
+function toggleSidebar(force){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  sidebarOpen=force!==undefined?force:!sidebarOpen;
+  sb.classList.toggle('closed',!sidebarOpen);
+  ov.classList.toggle('show',sidebarOpen);
+}
+// open on desktop by default
+if(window.innerWidth>=768){
+  document.getElementById('sidebar').classList.remove('closed');
+}
+
+// ── EKG ──
+(function(){
+  const pts=[];
+  const W=800,H=60;
+  let x=0,phase=0;
+  function beat(){
+    const y=H/2+Math.sin(phase)*4+Math.sin(phase*3.2)*2+(Math.random()-.5)*2;
+    pts.push({x,y});
+    if(pts.length>120)pts.shift();
+    // occasional spike (heartbeat)
+    if(Math.round(phase/(Math.PI*2))!==Math.round((phase-.08)/(Math.PI*2))){
+      pts.push({x:x+2,y:H/2-22});
+      pts.push({x:x+4,y:H/2+14});
+      pts.push({x:x+6,y:H/2-8});
+      pts.push({x:x+8,y:H/2});
+    }
+    phase+=.08;x+=W/120;
+    if(x>W){x=0;pts.length=0;}
+    const line=document.getElementById('ekgLine');
+    if(line)line.setAttribute('points',pts.map(p=>`${p.x},${p.y}`).join(' '));
+    requestAnimationFrame(beat);
+  }
+  beat();
+})();
+
+// ── TICK COUNTER ──
+(function(){
+  let tick=248,secs=38;
+  setInterval(()=>{
+    secs--;
+    if(secs<=0){secs=120;tick++;}
+    const el=document.getElementById('tickBadge');
+    if(el)el.textContent=`TICK ${tick} · ${secs}s`;
+    const dt=document.getElementById('d-tick');
+    if(dt)dt.textContent=tick;
+  },1000);
+})();
+
+// ── LIVE FLAGS COUNTER ──
+(function(){
+  let acc=412;
+  setInterval(()=>{
+    if(Math.random()<.3){
+      acc+=Math.floor(Math.random()*3)+1;
+      const el=document.getElementById('d-acc');
+      if(el)el.textContent=acc;
+    }
+  },2000);
+})();
+
+// ── LIVE LOG ENTRIES ──
+(function(){
+  const services=['web_challenge','db_service','auth_svc'];
+  const teams=['team_'+Math.floor(Math.random()*87)];
+  const log=document.getElementById('dashLog');
+  if(!log)return;
+  setInterval(()=>{
+    if(Math.random()<.5){
+      const svc=services[Math.floor(Math.random()*services.length)];
+      const t='team_'+String(Math.floor(Math.random()*87)).padStart(2,'0');
+      const now=new Date();
+      const ts=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      const line=document.createElement('span');
+      line.className='ok';
+      line.textContent=`[${ts}] FLAG ACCEPTED · ${svc} · ${t}`;
+      log.prepend(line);log.prepend(document.createElement('br'));
+      // trim
+      while(log.childNodes.length>24)log.removeChild(log.lastChild);
+    }
+  },2200);
+})();
+
+// ── GENERATING PROGRESS ANIMATION ──
+(function(){
+  let pct=72,dir=1;
+  setInterval(()=>{
+    pct+=dir*(.5+Math.random());
+    if(pct>=95){dir=-1;}
+    if(pct<=60){dir=1;}
+    const el=document.getElementById('genFill');
+    if(el)el.style.width=pct+'%';
+  },300);
+})();
+
+// ── BUILD TEAMS GRID ──
+(function(){
+  const grid=document.getElementById('teamGrid');
+  if(!grid)return;
+  const names=['Italy-1','Germany-3','France-2','Poland-4','Spain-1','Czech-2','Romania-1','Serbia-3','Croatia-2','Bulgaria-1','Austria-4','Switzerland-2','Netherlands-1','Belgium-3','Portugal-2','Greece-1','Hungary-4','Slovakia-2','Slovenia-1','Denmark-3'];
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<87;i++){
+    const div=document.createElement('div');
+    div.className='team-card'+(i===84?' us':'');
+    const down=Math.random()<.07&&i!==84;
+    const name=i===84?'Albania-1':(names[i%names.length]);
+    const ip=`10.60.${i}.1`;
+    div.innerHTML=`<div class="team-id">#${String(i).padStart(2,'0')}</div><div class="team-name">${name}</div><div class="team-ip">${ip}</div><div class="team-status${down?' down':''}"></div>`;
+    frag.appendChild(div);
+  }
+  grid.appendChild(frag);
+})();
+</script>
+</body>
+</html>
