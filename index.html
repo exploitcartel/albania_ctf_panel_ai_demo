@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Albania CTF Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050508;--surface:#0c0c14;--card:#0f0f1c;--border:#1a1a2e;--border2:#252540;
+  --red:#ff2d55;--red-dim:rgba(255,45,85,0.12);--red-glow:rgba(255,45,85,0.4);
+  --cyan:#00d4ff;--green:#00ff88;--yellow:#ffd200;
+  --text:#d8e0f0;--muted:#5a6280;
+  --mono:'Space Mono',monospace;--display:'Bebas Neue',sans-serif;--sans:'DM Sans',sans-serif;
+  --nav-w:240px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(255,45,85,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,45,85,0.025) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── LOGIN PAGE ─────────────────────────────────────────────── */
+#loginPage{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+#loginPage.hidden{display:none}
+.login-box{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:3rem;width:420px;position:relative;z-index:1;}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);border-radius:12px 12px 0 0;}
+.login-eagle{text-align:center;font-size:3rem;margin-bottom:1rem;filter:drop-shadow(0 0 20px rgba(255,45,85,0.8))}
+.login-title{text-align:center;font-family:var(--display);font-size:2rem;letter-spacing:4px;color:#fff;margin-bottom:0.3rem}
+.login-sub{text-align:center;font-family:var(--mono);font-size:0.62rem;color:var(--muted);letter-spacing:3px;margin-bottom:2rem}
+.login-alert{padding:10px;border-radius:4px;font-family:var(--mono);font-size:0.75rem;margin-bottom:1rem;background:rgba(255,45,85,0.1);border:1px solid rgba(255,45,85,0.3);color:var(--red);display:none}
+
+/* ── FORCE CHANGE PASSWORD ──────────────────────────────────── */
+#changePassPage{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:rgba(5,5,8,0.95);backdrop-filter:blur(10px);}
+#changePassPage.hidden{display:none}
+.change-box{background:var(--card);border:1px solid var(--yellow);border-radius:12px;padding:2.5rem;width:420px;}
+.change-warn{font-family:var(--mono);font-size:0.75rem;color:var(--yellow);margin-bottom:1.5rem;background:rgba(255,210,0,0.08);border:1px solid rgba(255,210,0,0.3);padding:10px;border-radius:4px}
+
+/* ── WIZARD ─────────────────────────────────────────────────── */
+#wizardPage{position:fixed;inset:0;z-index:998;display:flex;align-items:center;justify-content:center;background:var(--bg);}
+#wizardPage.hidden{display:none}
+.wizard-box{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:2.5rem;width:700px;max-height:90vh;overflow-y:auto;}
+.wizard-steps{display:flex;gap:0.5rem;margin-bottom:2rem}
+.wizard-step{flex:1;height:4px;border-radius:2px;background:var(--border2);transition:background 0.3s;}
+.wizard-step.done{background:var(--green)}
+.wizard-step.active{background:var(--red)}
+.wizard-title{font-family:var(--display);font-size:1.8rem;letter-spacing:3px;color:#fff;margin-bottom:0.3rem}
+.wizard-sub{font-family:var(--mono);font-size:0.65rem;color:var(--muted);letter-spacing:2px;margin-bottom:1.5rem}
+.verify-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:0.8rem;}
+.verify-icon{font-size:1.2rem;width:24px;text-align:center}
+.wizard-demo-btn{display:flex;align-items:center;gap:8px;padding:8px 18px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.3);border-radius:4px;font-family:var(--mono);font-size:0.72rem;color:var(--cyan);cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all 0.2s;margin-top:1rem;}
+.wizard-demo-btn:hover{background:rgba(0,212,255,0.15);box-shadow:0 0 15px rgba(0,212,255,0.2)}
+
+/* ── MAIN LAYOUT ─────────────────────────────────────────────── */
+#mainApp{position:relative;z-index:1}
+#mainApp.hidden{display:none}
+.layout{display:grid;grid-template-columns:var(--nav-w) 1fr;grid-template-rows:60px 1fr;min-height:100vh;transition:grid-template-columns 0.25s ease}
+.layout.nav-collapsed{--nav-w:56px}
+
+/* ── MOBILE OVERLAY SIDEBAR ────────────────────────────────── */
+.nav-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:89;backdrop-filter:blur(2px)}
+.nav-overlay.show{display:block}
+
+@media(max-width:768px){
+  :root{--nav-w:0px}
+  .layout{grid-template-columns:1fr}
+  .layout.nav-collapsed{--nav-w:0px}
+
+  /* Sidebar slides in over content */
+  nav.sidebar{
+    position:fixed;top:0;left:0;bottom:0;
+    width:240px;
+    transform:translateX(-100%);
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    z-index:90;
+    padding-top:60px;
+    background:rgba(8,8,16,.99);
+  }
+  nav.sidebar.mobile-open{transform:translateX(0)}
+
+  /* Header pills — wrap & shrink */
+  .header-right{gap:.4rem;flex-wrap:wrap}
+  .pill{padding:3px 7px;font-size:0.52rem;gap:4px}
+  .pill .dot{width:5px;height:5px}
+  .tick{padding:3px 8px;font-size:0.58rem}
+  .user-badge,.logout-btn{font-size:0.55rem;padding:3px 7px}
+  /* Hide sub-logo on mobile */
+  .logo-sub{display:none}
+  .logo-text{font-size:1.1rem}
+  .logo-eagle{font-size:1.2rem}
+
+  /* Main content full width */
+  main.content{padding:16px 12px}
+
+  /* Cards & grids stack */
+  .dash-grid{grid-template-columns:1fr!important}
+  .stat-row{grid-template-columns:1fr 1fr!important}
+  .tools-grid{grid-template-columns:1fr!important}
+  .aie-head{flex-wrap:wrap;gap:6px}
+  .aie-btns{flex-shrink:0}
+
+  /* Radar — full width, smaller height */
+  #radarCanvas{width:100%!important;height:auto!important}
+
+  /* Teams grid */
+  .teams-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}
+
+  /* Radar host list */
+  .radar-hosts{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))!important}
+
+  /* LDF stats */
+  .ldf-stats{grid-template-columns:1fr 1fr!important}
+
+  /* SSH/Vulnbox quick btns wrap */
+  .quick-btns{flex-wrap:wrap}
+
+  /* Exploit slots */
+  .exploit-row{flex-wrap:wrap}
+
+  /* Tables scroll */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* Hide topbar extra pills on very small screens */
+  .pill-pcap,.pill-farm{display:none}
+}
+
+@media(max-width:400px){
+  main.content{padding:12px 8px}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .page-title{font-size:1.4rem}
+  /* Hide even more pills */
+  .pill-tulip{display:none}
+}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+header{grid-column:1/-1;background:rgba(5,5,8,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-eagle{font-size:1.6rem;filter:drop-shadow(0 0 10px rgba(255,45,85,0.7))}
+.logo-text{font-family:var(--display);font-size:1.4rem;letter-spacing:3px;color:#fff}
+.logo-text span{color:var(--red)}
+.logo-sub{font-family:var(--mono);font-size:0.55rem;color:var(--muted);letter-spacing:2px;margin-top:1px}
+.header-right{display:flex;align-items:center;gap:1rem}
+.pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);padding:5px 12px;border-radius:100px;font-family:var(--mono);font-size:0.65rem}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot-on{background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite}
+.dot-off{background:var(--red)}
+.dot-warn{background:var(--yellow)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+.tick{font-family:var(--mono);font-size:0.7rem;color:var(--yellow);background:rgba(255,210,0,0.08);border:1px solid rgba(255,210,0,0.2);padding:5px 12px;border-radius:4px}
+.user-badge{font-family:var(--mono);font-size:0.65rem;color:var(--cyan);cursor:pointer}
+.user-badge:hover{color:var(--red)}
+
+/* ── SIDEBAR TOGGLE BUTTON ────────────────────────────────────── */
+.nav-toggle{width:32px;height:32px;background:transparent;border:1px solid var(--border2);border-radius:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0;flex-shrink:0;transition:border-color 0.15s;}
+.nav-toggle:hover{border-color:var(--red)}
+.nav-toggle span{display:block;width:16px;height:2px;background:var(--text);border-radius:2px;transition:background 0.15s}
+.nav-toggle:hover span{background:var(--red)}
+
+/* ── SIDEBAR ──────────────────────────────────────────────────── */
+nav{background:var(--surface);border-right:1px solid var(--border);padding:1rem 0;overflow-y:auto;overflow-x:hidden;transition:all 0.25s ease}
+.nav-group{margin-bottom:1.2rem}
+.nav-label{font-family:var(--mono);font-size:0.55rem;letter-spacing:4px;color:var(--muted);text-transform:uppercase;padding:0 1.2rem;margin-bottom:0.4rem;white-space:nowrap;overflow:hidden;transition:opacity 0.2s}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 1.2rem;cursor:pointer;font-size:0.78rem;font-weight:500;color:var(--text);text-transform:uppercase;letter-spacing:1px;border-left:2px solid transparent;transition:all 0.15s;white-space:nowrap;overflow:hidden;position:relative;}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.03)}
+.nav-item.active{color:var(--red);border-left-color:var(--red);background:var(--red-dim)}
+.nav-icon-svg{width:18px;height:18px;flex-shrink:0;opacity:0.7;transition:opacity 0.15s}
+.nav-item:hover .nav-icon-svg,.nav-item.active .nav-icon-svg{opacity:1}
+.nav-item.active .nav-icon-svg{filter:drop-shadow(0 0 4px var(--red))}
+.nav-txt{flex:1;transition:opacity 0.2s}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-family:var(--mono);font-size:0.58rem;padding:1px 6px;border-radius:100px;flex-shrink:0}
+
+/* Collapsed nav */
+.layout.nav-collapsed nav{padding:1rem 0}
+.layout.nav-collapsed .nav-label{opacity:0;height:0;margin:0;overflow:hidden}
+.layout.nav-collapsed .nav-group{margin-bottom:0.3rem}
+.layout.nav-collapsed .nav-txt{opacity:0;width:0;overflow:hidden}
+.layout.nav-collapsed .nav-badge{display:none}
+.layout.nav-collapsed .nav-item{padding:11px;justify-content:center;border-left:2px solid transparent}
+.layout.nav-collapsed .nav-item.active{border-left-color:var(--red)}
+.layout.nav-collapsed .nav-item[title]:hover::after{content:attr(title);position:absolute;left:calc(56px + 4px);top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--border2);padding:5px 10px;border-radius:4px;font-family:var(--mono);font-size:0.68rem;color:var(--text);white-space:nowrap;z-index:200;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+
+/* ── MAIN ──────────────────────────────────────────────────────── */
+main{padding:1.5rem;overflow-y:auto;background:var(--bg)}
+.page{display:none}.page.active{display:block}
+.page-title{font-family:var(--display);font-size:2rem;letter-spacing:4px;color:#fff;text-shadow:0 0 30px rgba(255,45,85,0.3)}
+.page-sub{font-family:var(--mono);font-size:0.62rem;color:var(--muted);letter-spacing:2px;margin-top:3px;margin-bottom:1.5rem}
+
+/* ── CARDS ──────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.4rem;margin-bottom:1.2rem;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,85,0.2),transparent)}
+.card-title{font-family:var(--mono);font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.card-title-icon{color:var(--red)}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── GRIDS ──────────────────────────────────────────────────────── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+
+/* ── STAT CARDS ──────────────────────────────────────────────────── */
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.2rem;position:relative;overflow:hidden}
+.stat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,var(--red)),transparent)}
+.stat-val{font-family:var(--display);font-size:2.6rem;letter-spacing:2px;color:var(--accent,var(--red));text-shadow:0 0 20px var(--accent,var(--red-glow));line-height:1}
+.stat-lbl{font-family:var(--mono);font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-top:5px}
+
+/* ── BUTTONS ──────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:4px;font-family:var(--mono);font-size:0.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all 0.15s}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{background:#ff1a45;box-shadow:0 0 20px rgba(255,45,85,0.4)}
+.btn-green{background:var(--green);color:#000}.btn-green:hover{box-shadow:0 0 20px rgba(0,255,136,0.4)}
+.btn-cyan{background:var(--cyan);color:#000}.btn-cyan:hover{box-shadow:0 0 20px rgba(0,212,255,0.4)}
+.btn-yellow{background:var(--yellow);color:#000}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border2)}.btn-ghost:hover{border-color:var(--red);color:var(--red)}
+.btn-danger{background:rgba(255,45,85,0.1);color:var(--red);border:1px solid rgba(255,45,85,0.3)}.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:0.65rem}
+.w-full{width:100%;justify-content:center}
+.flex{display:flex}.gap-1{gap:0.5rem}.gap-2{gap:1rem}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.mb-1{margin-bottom:0.5rem}.mb-2{margin-bottom:1rem}.mt-1{margin-top:0.5rem}.mt-2{margin-top:1rem}
+
+/* ── INPUTS ──────────────────────────────────────────────────────── */
+.form-group{margin-bottom:0.9rem}
+.form-label{display:block;font-family:var(--mono);font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text);opacity:0.7;margin-bottom:5px}
+.form-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border2);border-radius:4px;padding:8px 11px;color:var(--text);font-family:var(--mono);font-size:0.82rem;outline:none;transition:border-color 0.15s}
+.form-input:focus{border-color:var(--red)}
+.form-input::placeholder{color:var(--muted)}
+select.form-input option{background:#0f0f1c;color:var(--text)}
+textarea.form-input{resize:vertical;min-height:100px}
+
+/* ── TERMINAL ──────────────────────────────────────────────────────── */
+.terminal{background:#02020a;border:1px solid var(--border);border-radius:6px;padding:1rem;font-family:var(--mono);font-size:0.75rem;color:#7aff9e;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+
+/* ── ALERTS ──────────────────────────────────────────────────────── */
+.alert{padding:9px 12px;border-radius:4px;font-family:var(--mono);font-size:0.75rem;margin-bottom:0.8rem}
+.alert-ok{background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);color:var(--green)}
+.alert-err{background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);color:var(--red)}
+.alert-warn{background:rgba(255,210,0,0.08);border:1px solid rgba(255,210,0,0.3);color:var(--yellow)}
+.alert-info{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.3);color:#00d4ff}
+
+/* ── BADGES ──────────────────────────────────────────────────────── */
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:0.6rem;letter-spacing:1px}
+.badge-green{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3)}
+.badge-red{background:rgba(255,45,85,0.15);color:var(--red);border:1px solid rgba(255,45,85,0.3)}
+.badge-cyan{background:rgba(0,212,255,0.08);color:var(--cyan);border:1px solid rgba(0,212,255,0.3)}
+.badge-yellow{background:rgba(255,210,0,0.1);color:var(--yellow);border:1px solid rgba(255,210,0,0.3)}
+.badge-gray{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid var(--border2)}
+
+/* ── TOOL CARD ──────────────────────────────────────────────────────── */
+.tool-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.2rem;margin-bottom:0.75rem}
+.tool-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+.tool-name{font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--text)}
+.tool-status{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:0.68rem;color:var(--text)}
+
+/* ── AUDIT LOG ──────────────────────────────────────────────────────── */
+.audit-row{display:grid;grid-template-columns:140px 100px 180px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.02);font-family:var(--mono);font-size:0.68rem}
+.audit-row:hover{background:rgba(255,255,255,0.015)}
+
+/* ── SERVICE ITEM ──────────────────────────────────────────────────────── */
+.svc-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+.svc-item:last-child{border-bottom:none}
+.svc-name{font-family:var(--mono);font-size:0.78rem;color:var(--text)}
+.svc-port{font-family:var(--mono);font-size:0.65rem;color:var(--yellow)}
+
+/* ── FLAG ROW ──────────────────────────────────────────────────────── */
+.flag-row{display:grid;grid-template-columns:75px 1fr 90px 80px;gap:6px;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.02);font-family:var(--mono);font-size:0.68rem}
+.flag-row.accepted{border-left:2px solid var(--green)}
+.flag-row.rejected{border-left:2px solid var(--red)}
+.flag-row.queued{border-left:2px solid var(--yellow)}
+
+/* ── TEAM GRID ──────────────────────────────────────────────────────── */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;max-height:380px;overflow-y:auto}
+.team-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--mono);font-size:0.68rem;cursor:pointer;transition:all 0.15s;color:var(--text)}
+.team-item:hover{border-color:var(--red);color:var(--red)}
+.team-ip{color:var(--yellow);font-size:0.6rem;margin-top:2px}
+
+/* ── TOAST ──────────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast-item{background:var(--card);border:1px solid var(--border2);padding:9px 14px;border-radius:6px;font-family:var(--mono);font-size:0.72rem;border-left:3px solid var(--green);animation:slideIn 0.2s ease;max-width:300px;color:var(--text)}
+.toast-item.err{border-left-color:var(--red)}.toast-item.warn{border-left-color:var(--yellow)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── EKG HEALTH MONITOR ──────────────────────────────────────────── */
+.health-monitor{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:1.4rem;margin-bottom:1.2rem;position:relative;overflow:hidden}
+.health-monitor::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,136,0.3),transparent)}
+.health-title{font-family:var(--mono);font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;display:flex;align-items:center;justify-content:space-between}
+.health-status-txt{font-family:var(--mono);font-size:0.65rem;letter-spacing:2px}
+.ekg-wrap{position:relative;overflow:hidden;border-radius:4px;background:#010108}
+#ekgCanvas{display:block;width:100%;height:70px}
+.ekg-services{display:flex;gap:0.75rem;margin-top:0.75rem;flex-wrap:wrap}
+.ekg-svc{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:0.62rem;color:var(--text)}
+.ekg-dot{width:6px;height:6px;border-radius:50%}
+
+/* ── TOOLKIT / DISCOVERY ────────────────────────────────────────── */
+.tk-section{margin-bottom:1.5rem}
+.tk-title{font-family:var(--mono);font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:0.8rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border)}
+.nmap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem}
+.nmap-btn{background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.2);border-radius:4px;padding:8px 12px;cursor:pointer;font-family:var(--mono);font-size:0.65rem;color:var(--cyan);text-align:left;transition:all 0.15s}
+.nmap-btn:hover{background:rgba(0,212,255,0.1);border-color:rgba(0,212,255,0.5)}
+.nmap-btn-title{font-weight:700;margin-bottom:2px;color:var(--text)}
+.nmap-btn-desc{color:var(--muted);font-size:0.6rem}
+.backup-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;margin-top:0.8rem}
+.backup-stat{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:var(--mono);font-size:0.62rem;color:var(--text)}
+.backup-stat-val{font-size:0.9rem;font-weight:700;color:var(--cyan);display:block;margin-bottom:2px}
+.backup-stat-lbl{color:var(--muted)}
+
+/* ── RADAR DISCOVERY ────────────────────────────────────────────── */
+#radarCanvas{display:block;margin:0 auto;max-width:100%}
+.radar-wrap{background:#010108;border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center;position:relative}
+.radar-hosts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:320px;overflow-y:auto;margin-top:1rem}
+.radar-host{background:var(--surface);border:1px solid rgba(0,255,136,0.2);border-radius:5px;padding:8px 10px;font-family:var(--mono);cursor:pointer;transition:all 0.15s}
+.radar-host:hover{border-color:var(--green);background:rgba(0,255,136,0.05);transform:translateY(-1px)}
+.radar-host.dead{border-color:var(--border);opacity:.6}
+.radar-host.dead:hover{border-color:var(--muted);transform:none}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+.text-red{color:var(--red)}.text-green{color:var(--green)}.text-cyan{color:var(--cyan)}.text-yellow{color:var(--yellow)}.text-muted{color:var(--muted)}.text-mono{font-family:var(--mono)}.text-sm{font-size:0.8rem}.text-xs{font-size:0.68rem}
+.sep{height:1px;background:var(--border);margin:1rem 0}
+
+/* ── AI EXPLOITS ─────────────────────────────────────────── */
+.aie-slot{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .25s,background .25s;position:relative}
+.aie-slot::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,45,85,0.1),transparent)}
+.aie-slot.s-fetching{border-color:rgba(255,210,0,.45);background:rgba(255,210,0,.02)}
+.aie-slot.s-analyzing,.aie-slot.s-generating{border-color:rgba(0,212,255,.45);background:rgba(0,212,255,.02)}
+.aie-slot.s-ready{border-color:rgba(0,255,136,.4);background:rgba(0,255,136,.02)}
+.aie-slot.s-running{border-color:rgba(0,255,136,.5);background:rgba(0,255,136,.03)}
+.aie-slot.s-paused{border-color:rgba(255,210,0,.3)}
+.aie-slot.s-error{border-color:rgba(255,45,85,.5);background:rgba(255,45,85,.02)}
+.aie-head{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;user-select:none;transition:background .15s}
+.aie-head:hover{background:rgba(255,255,255,.02)}
+.aie-num{font-family:var(--mono);font-size:0.58rem;letter-spacing:2px;color:var(--muted);min-width:22px}
+.aie-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s}
+.aie-dot.s-idle{background:#1e1e30}
+.aie-dot.s-fetching{background:var(--yellow);animation:blink .9s infinite}
+.aie-dot.s-analyzing,.aie-dot.s-generating{background:var(--cyan);animation:blink .5s infinite}
+.aie-dot.s-ready{background:var(--green)}
+.aie-dot.s-running{background:var(--green);animation:blink .45s infinite}
+.aie-dot.s-paused{background:var(--yellow)}
+.aie-dot.s-error{background:var(--red)}
+.aie-svc{flex:1;font-family:var(--mono);font-size:0.78rem;font-weight:700;color:var(--text);background:transparent;border:none;outline:none;letter-spacing:1px;min-width:0}
+.aie-svc::placeholder{color:#1e1e30}
+.aie-port{width:62px;font-family:var(--mono);font-size:0.65rem;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px;padding:3px 6px;outline:none;text-align:center}
+.aie-port:focus{border-color:rgba(0,212,255,.4);color:var(--text)}
+.aie-stlbl{font-family:var(--mono);font-size:0.58rem;letter-spacing:2px;min-width:88px;text-align:right;transition:color .3s}
+.aie-stlbl.s-idle{color:var(--muted)}
+.aie-stlbl.s-fetching{color:var(--yellow)}
+.aie-stlbl.s-analyzing,.aie-stlbl.s-generating{color:var(--cyan)}
+.aie-stlbl.s-ready{color:var(--green)}
+.aie-stlbl.s-running{color:var(--green)}
+.aie-stlbl.s-paused{color:var(--yellow)}
+.aie-stlbl.s-error{color:var(--red)}
+.aie-btns{display:flex;gap:5px;flex-shrink:0}
+.aie-btn-run{font-family:var(--mono);font-size:0.62rem;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid var(--green);color:var(--green);background:transparent;cursor:pointer;transition:background .15s}
+.aie-btn-run:hover:not(:disabled){background:rgba(0,255,136,.1)}
+.aie-btn-run:disabled{opacity:.3;cursor:not-allowed}
+.aie-btn-pause{font-family:var(--mono);font-size:0.62rem;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid var(--yellow);color:var(--yellow);background:transparent;cursor:pointer;transition:background .15s}
+.aie-btn-pause:hover:not(:disabled){background:rgba(255,210,0,.1)}
+.aie-btn-pause:disabled{opacity:.3;cursor:not-allowed}
+.aie-btn-stop{font-family:var(--mono);font-size:0.62rem;letter-spacing:1px;padding:4px 10px;border-radius:4px;border:1px solid var(--red);color:var(--red);background:transparent;cursor:pointer;transition:background .15s}
+.aie-btn-stop:hover:not(:disabled){background:rgba(255,45,85,.1)}
+.aie-btn-stop:disabled{opacity:.3;cursor:not-allowed}
+.aie-body{border-top:1px solid var(--border);padding:12px 14px;display:none;flex-direction:column;gap:10px}
+.aie-body.open{display:flex}
+.aie-prog-bar{height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.aie-prog-fill{height:100%;border-radius:2px;width:0%;transition:width .5s,background .3s}
+.aie-meta{display:flex;gap:6px;flex-wrap:wrap}
+.aie-pill{font-family:var(--mono);font-size:0.55rem;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:rgba(255,255,255,.03);color:var(--muted);border:1px solid var(--border)}
+.aie-pill.c{background:rgba(0,212,255,.08);color:var(--cyan);border-color:rgba(0,212,255,.2)}
+.aie-pill.g{background:rgba(0,255,136,.08);color:var(--green);border-color:rgba(0,255,136,.2)}
+.aie-pill.r{background:rgba(255,45,85,.08);color:var(--red);border-color:rgba(255,45,85,.2)}
+.aie-log{background:#020204;border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:0.6rem;line-height:1.7;min-height:60px;max-height:120px;overflow-y:auto;color:#2a2a40}
+.aie-log .lok{color:var(--green)}
+.aie-log .linf{color:var(--cyan)}
+.aie-log .lwrn{color:var(--yellow)}
+.aie-log .lerr{color:var(--red)}
+.aie-code{background:#01010a;border:1px solid rgba(0,255,136,.15);border-radius:4px;padding:10px 12px;font-family:var(--mono);font-size:0.58rem;line-height:1.7;max-height:150px;overflow-y:auto;color:#1a5c35;white-space:pre;display:none}
+.aie-send-row{display:none;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid var(--border)}
+.aie-send-info{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
+.aie-send-info code{color:#7F77DD}
+.aie-send-btn{font-family:var(--mono);font-size:0.68rem;letter-spacing:1px;padding:6px 16px;border-radius:4px;border:1px solid var(--cyan);color:var(--cyan);background:transparent;cursor:pointer;transition:background .15s}
+.aie-send-btn:hover{background:rgba(0,212,255,.1)}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN PAGE ────────────────────────────────────────────────── -->
+<div id="loginPage">
+  <div class="login-box">
+    <div class="login-eagle">🦅</div>
+    <div class="login-title">Albania <span style="color:var(--red)">CTF</span></div>
+    <div class="login-sub">© EDISON PLAKU · ATTACK&amp;DEFENSE PANEL</div>
+    <div class="login-alert" id="loginAlert"></div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" id="loginUser" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-red w-full mt-1" onclick="doLogin()">→ Login</button>
+  </div>
+</div>
+
+<!-- ── FORCE CHANGE PASSWORD ──────────────────────────────────────── -->
+<div id="changePassPage" class="hidden">
+  <div class="change-box">
+    <div class="change-warn">⚠ Security: You must change your password before continuing.</div>
+    <div style="font-family:var(--display);font-size:1.4rem;letter-spacing:3px;color:#fff;margin-bottom:1.2rem">CHANGE PASSWORD</div>
+    <div id="changeAlert"></div>
+    <div class="form-group">
+      <label class="form-label">Current Password</label>
+      <input class="form-input" type="password" id="oldPass" placeholder="admin"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">New Password (min 8 chars)</label>
+      <input class="form-input" type="password" id="newPass" placeholder="••••••••••••"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirm New Password</label>
+      <input class="form-input" type="password" id="newPass2" placeholder="••••••••••••"/>
+    </div>
+    <button class="btn btn-yellow w-full mt-1" onclick="doChangePass()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Change Password
+    </button>
+  </div>
+</div>
+
+<!-- ── WIZARD ──────────────────────────────────────────────────────── -->
+<div id="wizardPage" class="hidden">
+  <div class="wizard-box">
+    <div class="wizard-steps" id="wizardSteps">
+      <div class="wizard-step active" id="ws0"></div>
+      <div class="wizard-step" id="ws1"></div>
+      <div class="wizard-step" id="ws2"></div>
+      <div class="wizard-step" id="ws3"></div>
+      <div class="wizard-step" id="ws4"></div>
+    </div>
+
+    <!-- Step 0: Welcome -->
+    <div id="wz-0">
+      <div class="wizard-title">WELCOME</div>
+      <div class="wizard-sub">FIRST TIME SETUP — ALBANIA CTF PANEL</div>
+      <div class="alert alert-info mb-2">This wizard will guide you through the initial configuration of the panel. It takes about 2 minutes.</div>
+      <p class="text-mono text-sm mb-2" style="line-height:1.8;color:var(--text)">You will configure:<br>① Vulnbox credentials<br>② Gameserver &amp; team info<br>③ Tool paths (Tulip, S4DFarm)<br>④ Verify all connections<br>⑤ Launch!</p>
+      <div class="flex gap-1" style="flex-wrap:wrap">
+        <button class="btn btn-red" onclick="wzStep(1)">→ Start Setup</button>
+        <button class="wizard-demo-btn" onclick="launchDemoMode()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Continue Demo (skip setup)
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 1: Credentials -->
+    <div id="wz-1" style="display:none">
+      <div class="wizard-title">CREDENTIALS</div>
+      <div class="wizard-sub">VULNBOX &amp; COMPETITION CONFIG</div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Vulnbox IP</label><input class="form-input" id="wz-vip" placeholder="10.60.85.1"/></div>
+        <div class="form-group"><label class="form-label">Vulnbox Password</label><input class="form-input" type="password" id="wz-vpass" placeholder="••••••••••••"/></div>
+        <div class="form-group"><label class="form-label">Gameserver IP</label><input class="form-input" id="wz-gsip" placeholder="10.10.0.1"/></div>
+        <div class="form-group"><label class="form-label">Team Token</label><input class="form-input" id="wz-token" placeholder="7d3eee1c..."/></div>
+        <div class="form-group"><label class="form-label">Team ID</label><input class="form-input" id="wz-tid" placeholder="85" type="number"/></div>
+        <div class="form-group"><label class="form-label">Team Name</label><input class="form-input" id="wz-tname" placeholder="Albania-1"/></div>
+      </div>
+      <div class="flex gap-1 mt-1">
+        <button class="btn btn-ghost" onclick="wzStep(0)">← Back</button>
+        <button class="btn btn-red" onclick="wzStep(2)">→ Next</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Tool Paths -->
+    <div id="wz-2" style="display:none">
+      <div class="wizard-title">TOOLS</div>
+      <div class="wizard-sub">TULIP · S4DFARM · PCAP PATHS</div>
+      <div class="form-group"><label class="form-label">Tulip Path (local)</label><input class="form-input" id="wz-tulip" placeholder="/opt/tulip"/></div>
+      <div class="form-group"><label class="form-label">Tulip URL</label><input class="form-input" id="wz-tulip-url" placeholder="http://localhost:3000"/></div>
+      <div class="form-group"><label class="form-label">S4DFarm Path (local)</label><input class="form-input" id="wz-farm" placeholder="/opt/s4dfarm"/></div>
+      <div class="form-group"><label class="form-label">S4DFarm URL</label><input class="form-input" id="wz-farm-url" placeholder="http://localhost:5137"/></div>
+      <div class="form-group"><label class="form-label">PCAP Dir (on vulnbox)</label><input class="form-input" id="wz-pcap" placeholder="/opt/pcap"/></div>
+      <div class="flex gap-1 mt-1">
+        <button class="btn btn-ghost" onclick="wzStep(1)">← Back</button>
+        <button class="btn btn-red" onclick="wzSave()">→ Save &amp; Verify</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Verify -->
+    <div id="wz-3" style="display:none">
+      <div class="wizard-title">VERIFY</div>
+      <div class="wizard-sub">TESTING ALL CONNECTIONS...</div>
+      <div id="verifyResults">
+        <div class="verify-item"><span class="verify-icon">⏳</span><span>Testing vulnbox SSH...</span></div>
+        <div class="verify-item"><span class="verify-icon">⏳</span><span>Testing gameserver...</span></div>
+        <div class="verify-item"><span class="verify-icon">⏳</span><span>Testing Flag IDs...</span></div>
+      </div>
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-ghost" onclick="wzStep(2)">← Back</button>
+        <button class="btn btn-green" id="wzDoneBtn" style="display:none" onclick="wzComplete()">✓ Launch Panel</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Done -->
+    <div id="wz-4" style="display:none">
+      <div class="wizard-title">READY</div>
+      <div class="wizard-sub">ALBANIA CTF PANEL IS CONFIGURED</div>
+      <div class="alert alert-ok mb-2">✓ All systems configured. PCAP sync will start automatically.</div>
+      <p class="text-mono text-sm mb-2" style="color:var(--text)">Good luck! 🦅🇦🇱</p>
+      <button class="btn btn-red" onclick="launchPanel()">→ Enter Panel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ──────────────────────────────────────────────────────── -->
+<div id="mainApp" class="hidden">
+<div class="nav-overlay" id="navOverlay" onclick="closeMobileNav()"></div>
+<div class="layout" id="layout">
+
+<header>
+  <div class="logo" style="gap:14px">
+    <button class="nav-toggle" onclick="toggleNav()" title="Toggle sidebar">
+      <span></span><span></span><span></span>
+    </button>
+    <span class="logo-eagle">🦅</span>
+    <div>
+      <div class="logo-text">Albania <span>CTF</span></div>
+      <div class="logo-sub">© EDISON PLAKU · ATTACK&amp;DEFENSE</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="tick" id="tickDisplay">TICK — · —s</div>
+    <div class="pill"><span class="dot dot-off" id="hVPN"></span><span id="hVPNLbl">VPN</span></div>
+    <div class="pill"><span class="dot dot-off" id="hVbox"></span><span id="hVboxLbl">VULNBOX</span></div>
+    <div class="pill"><span class="dot dot-off" id="hPcap"></span><span id="hPcapLbl">PCAP</span></div>
+    <div class="pill"><span class="dot dot-off" id="hTulip"></span><span id="hTulipLbl">TULIP</span></div>
+    <div class="user-badge" onclick="nav(document.querySelector('[data-page=users]'))" id="userBadge">admin ▾</div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Logout</button>
+  </div>
+</header>
+
+<nav id="sideNav">
+  <div class="nav-group">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" data-page="dashboard" title="Dashboard" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="nav-txt">Dashboard</span>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Infrastructure</div>
+    <div class="nav-item" data-page="setup" title="Setup" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      <span class="nav-txt">Setup</span>
+    </div>
+    <div class="nav-item" data-page="vulnbox" title="Vulnbox" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <span class="nav-txt">Vulnbox</span>
+    </div>
+    <div class="nav-item" data-page="tools" title="Tools" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      <span class="nav-txt">Tools</span>
+    </div>
+    <div class="nav-item" data-page="toolkit" title="Toolkit" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      <span class="nav-txt">Toolkit</span>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Offense</div>
+    <div class="nav-item" data-page="exploits" title="Exploits" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span class="nav-txt">Exploits</span><span class="nav-badge" id="exploitBadge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-page="ai-exploits" title="AI Exploits" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      <span class="nav-txt">AI Exploits</span>
+    </div>
+    <div class="nav-item" data-page="teams" title="Teams" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="nav-txt">Teams</span>
+    </div>
+    <div class="nav-item" data-page="flags" title="Flags" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <span class="nav-txt">Flags</span><span class="nav-badge" id="flagBadge" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-page="ldf" title="LDF Farm" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="nav-txt">LDF Farm</span><span class="nav-badge" id="ldfBadge" style="display:none">0</span>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Intel</div>
+    <div class="nav-item" data-page="discovery" title="Discovery" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/></svg>
+      <span class="nav-txt">Discovery</span>
+    </div>
+    <div class="nav-item" data-page="ssh" title="SSH Console" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      <span class="nav-txt">SSH</span>
+    </div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Security</div>
+    <div class="nav-item" data-page="users" title="Users" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-txt">Users</span>
+    </div>
+    <div class="nav-item" data-page="audit" title="Audit Log" onclick="nav(this)">
+      <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span class="nav-txt">Audit Log</span>
+    </div>
+  </div>
+</nav>
+
+<main>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="page-title">DASHBOARD</div>
+  <div class="page-sub">LIVE STATUS · ALBANIA TEAM #85</div>
+  <div class="grid-4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val" id="dAccepted">0</div><div class="stat-lbl">Flags Accepted</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="stat-val" id="dRejected">0</div><div class="stat-lbl">Flags Rejected</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val" id="dPcap">0</div><div class="stat-lbl">PCAPs Synced</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val" id="dTeams">—</div><div class="stat-lbl">Teams Online</div></div>
+  </div>
+
+  <!-- EKG Health Monitor -->
+  <div class="health-monitor">
+    <div class="health-title">
+      <span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" style="margin-right:6px;vertical-align:middle"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        SERVICE HEALTH MONITOR
+      </span>
+      <span class="health-status-txt" id="healthStatusTxt" style="color:var(--green)">ALL SYSTEMS NOMINAL</span>
+    </div>
+    <div class="ekg-wrap">
+      <canvas id="ekgCanvas" height="70"></canvas>
+    </div>
+    <div class="ekg-services" id="ekgServices">
+      <span class="ekg-svc"><span class="ekg-dot" style="background:var(--muted)"></span><span style="color:var(--muted)">Waiting for data...</span></span>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Vulnbox Services
+      </div>
+      <div id="dServices"><div class="text-muted text-xs text-mono">Loading...</div></div>
+      <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="refreshVulnbox()">↻</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Tools Status
+      </div>
+      <div id="dTools"><div class="text-muted text-xs text-mono">Loading...</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      SLA Events <span id="slaAlertBadge" style="display:none;background:var(--red);color:#fff;font-size:0.65rem;padding:2px 7px;border-radius:10px;margin-left:6px;font-family:var(--mono)">!</span>
+    </div>
+    <div id="dSlaLog"><div class="text-muted text-xs text-mono" style="padding:8px">No SLA events — all services nominal</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      Recent Flags
+    </div>
+    <div id="dFlags"><div class="text-muted text-xs text-mono">No flags yet...</div></div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="page-setup" class="page">
+  <div class="page-title">SETUP</div>
+  <div class="page-sub">COMPETITION CONFIGURATION</div>
+  <div id="setupAlert"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">▣</span>Vulnbox</div>
+      <div class="form-group"><label class="form-label">IP</label><input class="form-input" id="cfgVip" placeholder="10.60.85.1"/></div>
+      <div class="form-group"><label class="form-label">User</label><input class="form-input" id="cfgVuser" placeholder="root"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="cfgVpass" placeholder="••••••••"/></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◈</span>Gameserver</div>
+      <div class="form-group"><label class="form-label">Gameserver IP</label><input class="form-input" id="cfgGs" placeholder="10.10.0.1"/></div>
+      <div class="form-group"><label class="form-label">Team Token</label><input class="form-input" id="cfgToken" placeholder="7d3eee1c..."/></div>
+      <div class="form-group"><label class="form-label">Team ID</label><input class="form-input" id="cfgTid" placeholder="85" type="number"/></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">⊕</span>Tools Paths</div>
+      <div class="form-group"><label class="form-label">Tulip Path</label><input class="form-input" id="cfgTulip" placeholder="/opt/tulip"/></div>
+      <div class="form-group"><label class="form-label">Tulip URL</label><input class="form-input" id="cfgTulipUrl" placeholder="http://localhost:3000"/></div>
+      <div class="form-group"><label class="form-label">S4DFarm Path</label><input class="form-input" id="cfgFarm" placeholder="/opt/s4dfarm"/></div>
+      <div class="form-group"><label class="form-label">S4DFarm URL</label><input class="form-input" id="cfgFarmUrl" placeholder="http://localhost:5137"/></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◉</span>PCAP</div>
+      <div class="form-group"><label class="form-label">PCAP Dir (vulnbox)</label><input class="form-input" id="cfgPcapDir" placeholder="/opt/pcap"/></div>
+      <div class="form-group"><label class="form-label">Traffic Dir (local)</label><input class="form-input" id="cfgTraffic" placeholder="/traffic"/></div>
+    </div>
+  </div>
+  <div class="flex gap-1">
+    <button class="btn btn-red" onclick="saveConfig()">Save Config</button>
+    <button class="btn btn-ghost" onclick="loadConfig()">↻ Reload</button>
+  </div>
+</div>
+
+<!-- VULNBOX -->
+<div id="page-vulnbox" class="page">
+  <div class="page-title">VULNBOX</div>
+  <div class="page-sub">REMOTE MANAGEMENT</div>
+  <div id="vboxAlert"></div>
+  <div class="grid-4 mb-2">
+    <button class="btn btn-ghost w-full" onclick="vboxAct('backup')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Backup
+    </button>
+    <button class="btn btn-ghost w-full" onclick="vboxAct('watchdog')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Watchdog
+    </button>
+    <button class="btn btn-danger w-full" onclick="vboxAct('firewall')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+      Firewall
+    </button>
+    <button class="btn btn-danger w-full" onclick="vboxAct('change_password')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Change Pass
+    </button>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">▣</span>Services</div>
+    <div id="vboxServices"><div class="text-muted text-xs text-mono">Loading...</div></div>
+    <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="refreshVulnbox()">↻ Refresh</button></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">$_</span>Quick Commands</div>
+    <div class="grid-3 mb-2">
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('docker ps --format \'{{.Names}}\\t{{.Status}}\'')">docker ps</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('ss -tlnp | grep LISTEN')">ports</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('df -h && free -h')">disk/mem</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('cat /var/log/watchdog.log 2>/dev/null | tail -10')">watchdog</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('ls -lh /tmp/albania_backup_*.tar.gz 2>/dev/null')">backups</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickCmd('iptables -L INPUT -n --line-numbers | head -20')">firewall</button>
+    </div>
+    <div class="terminal" id="quickOut">$ ready</div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div id="page-tools" class="page">
+  <div class="page-title">TOOLS</div>
+  <div class="page-sub">TULIP · S4DFARM · PCAP SYNC</div>
+
+  <!-- TULIP -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div>
+        <div class="tool-name">Tulip — Traffic Analyzer</div>
+        <div class="text-xs text-muted text-mono mt-1" id="tulipUrl">Loading...</div>
+      </div>
+      <div class="tool-status">
+        <span class="dot dot-off" id="tulipDot"></span>
+        <span id="tulipStatus">Unknown</span>
+      </div>
+    </div>
+    <div class="flex gap-1 mb-1">
+      <button class="btn btn-green btn-sm" onclick="toolAct('tulip','start')">▶ Start</button>
+      <button class="btn btn-danger btn-sm" onclick="toolAct('tulip','stop')">■ Stop</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadToolLogs('tulip')">Logs</button>
+      <button class="btn btn-cyan btn-sm" id="tulipOpenBtn" onclick="openTool('tulip')" style="display:none">↗ Open</button>
+    </div>
+    <div class="terminal" id="tulipLogs" style="max-height:150px;display:none"></div>
+  </div>
+
+  <!-- S4DFARM -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div>
+        <div class="tool-name">S4DFarm — Flag Farm</div>
+        <div class="text-xs text-muted text-mono mt-1" id="farmUrl">Loading...</div>
+      </div>
+      <div class="tool-status">
+        <span class="dot dot-off" id="farmDot"></span>
+        <span id="farmStatus">Unknown</span>
+      </div>
+    </div>
+    <div class="flex gap-1 mb-1">
+      <button class="btn btn-green btn-sm" onclick="toolAct('farm','start')">▶ Start</button>
+      <button class="btn btn-danger btn-sm" onclick="toolAct('farm','stop')">■ Stop</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadToolLogs('farm')">Logs</button>
+      <button class="btn btn-cyan btn-sm" id="farmOpenBtn" onclick="openTool('farm')" style="display:none">↗ Open</button>
+    </div>
+    <div class="terminal" id="farmLogs" style="max-height:150px;display:none"></div>
+  </div>
+
+  <!-- PCAP -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div>
+        <div class="tool-name">PCAP Sync — Traffic Capture</div>
+        <div class="text-xs text-muted text-mono mt-1" id="pcapDetail">Loading...</div>
+        <div class="text-xs text-mono mt-1" id="pcapSyncAge" style="display:none">Last sync: —</div>
+      </div>
+      <div class="tool-status">
+        <span class="dot dot-off" id="pcapDot"></span>
+        <span id="pcapStatus">Unknown</span>
+      </div>
+    </div>
+    <div class="flex gap-1 mb-1">
+      <button class="btn btn-green btn-sm" onclick="pcapStart()">▶ Start</button>
+      <button class="btn btn-danger btn-sm" onclick="pcapStop()">■ Stop</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadPcapLogs()">Logs</button>
+    </div>
+    <div class="terminal" id="pcapLogs" style="max-height:150px;display:none"></div>
+    <div id="pcapFiles" class="mt-1"></div>
+  </div>
+
+  <!-- DISCOVERY (quick) -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div><div class="tool-name">Discovery — Network Scan</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="runDiscovery()">▶ Ping Sweep</button>
+    </div>
+    <div id="discoveryResult" class="text-mono text-xs text-muted">Click to scan all targets...</div>
+  </div>
+
+  <!-- SERVICES PULL -->
+  <div class="tool-card">
+    <div class="tool-header">
+      <div><div class="tool-name">Services Pull — Get Source Code</div></div>
+      <button class="btn btn-ghost btn-sm" onclick="pullServices()">▶ Pull</button>
+    </div>
+    <div class="terminal" id="pullOutput" style="max-height:150px;display:none"></div>
+  </div>
+</div>
+
+<!-- ── TOOLKIT PAGE ───────────────────────────────────────────────── -->
+<div id="page-toolkit" class="page">
+  <div class="page-title">TOOLKIT</div>
+  <div class="page-sub">BACKUP · RECON · PORT SCAN · SERVICE ENUM</div>
+
+  <!-- BACKUP -->
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">▼</span>Vulnbox Backup</div>
+    <div class="flex gap-1 mb-2">
+      <div class="form-group" style="flex:1;margin:0">
+        <label class="form-label">Local Backup Folder (on Kali)</label>
+        <input class="form-input" id="tkBackupDir" value="/home/kali/albania-backups" placeholder="/home/kali/albania-backups"/>
+      </div>
+      <div style="display:flex;align-items:flex-end">
+        <button class="btn btn-cyan" onclick="tkDoBackup()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Backup Now
+        </button>
+      </div>
+    </div>
+    <div id="tkBackupInfo" class="backup-info" style="display:none">
+      <div class="backup-stat"><span class="backup-stat-val" id="tkBkTime">—</span><span class="backup-stat-lbl">Last Backup</span></div>
+      <div class="backup-stat"><span class="backup-stat-val" id="tkBkSize">—</span><span class="backup-stat-lbl">Backup Size</span></div>
+      <div class="backup-stat"><span class="backup-stat-val" id="tkBkCount">—</span><span class="backup-stat-lbl">Total Backups</span></div>
+    </div>
+    <div class="terminal" id="tkBackupLog" style="max-height:120px;display:none;margin-top:0.8rem"></div>
+  </div>
+
+  <!-- NMAP PRESETS -->
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◎</span>Nmap Quick Scans</div>
+    <div class="form-group mb-2">
+      <label class="form-label">Target IP / Range</label>
+      <div class="flex gap-1">
+        <input class="form-input" id="tkNmapTarget" placeholder="10.60.X.1 or 10.60.0.0/16"/>
+        <button class="btn btn-ghost btn-sm" onclick="tkFillVulnboxIP()">Use Vulnbox IP</button>
+      </div>
+    </div>
+    <div class="nmap-grid">
+      <button class="nmap-btn" onclick="tkNmap('-sV --version-intensity 5 -p-','Full Port + Version')">
+        <div class="nmap-btn-title">Full Port + Version</div>
+        <div class="nmap-btn-desc">All 65535 ports, service detection</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sV -p 22,80,443,8080,8443,3000,5000,5137','Common Ports')">
+        <div class="nmap-btn-title">Common Ports</div>
+        <div class="nmap-btn-desc">Top web & admin ports</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sV --script=banner -p-','Banner Grab')">
+        <div class="nmap-btn-title">Banner Grab</div>
+        <div class="nmap-btn-desc">Service banners on all ports</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sV --script=http-title,http-headers -p 80,443,8080,8443','HTTP Enum')">
+        <div class="nmap-btn-title">HTTP Enum</div>
+        <div class="nmap-btn-desc">Web server titles & headers</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sV --script=vulners --script-args mincvss=7 -p-','Vuln Scan')">
+        <div class="nmap-btn-title">Vuln Scan (vulners)</div>
+        <div class="nmap-btn-desc">CVE detection, CVSS ≥7</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-O --osscan-guess','OS Detection')">
+        <div class="nmap-btn-title">OS Detection</div>
+        <div class="nmap-btn-desc">Operating system fingerprint</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sU --top-ports 200','UDP Top 200')">
+        <div class="nmap-btn-title">UDP Top 200</div>
+        <div class="nmap-btn-desc">Most common UDP ports</div>
+      </button>
+      <button class="nmap-btn" onclick="tkNmap('-sV --script=ssh-auth-methods,ssh2-enum-algos -p 22','SSH Audit')">
+        <div class="nmap-btn-title">SSH Audit</div>
+        <div class="nmap-btn-desc">SSH auth methods & algorithms</div>
+      </button>
+    </div>
+    <div class="terminal" id="tkNmapOut" style="max-height:280px;margin-top:0.8rem">$ select a scan preset above...</div>
+  </div>
+
+  <!-- CURL / HTTP -->
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">↗</span>HTTP Recon (curl)</div>
+    <div class="flex gap-1 mb-2">
+      <input class="form-input" id="tkCurlUrl" placeholder="http://10.60.X.1:8080/"/>
+      <select class="form-input" id="tkCurlMethod" style="width:120px;flex-shrink:0">
+        <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option><option>OPTIONS</option><option>HEAD</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Extra headers / body (optional)</label>
+      <input class="form-input" id="tkCurlExtra" placeholder='-H "Authorization: Bearer TOKEN" -d \'{"key":"val"}\''/> 
+    </div>
+    <div class="flex gap-1 mb-2">
+      <button class="btn btn-cyan btn-sm" onclick="tkCurl()">Send Request</button>
+      <button class="btn btn-ghost btn-sm" onclick="tkCurl('-I')">Headers Only</button>
+      <button class="btn btn-ghost btn-sm" onclick="tkCurl('-v --max-time 5')">Verbose</button>
+    </div>
+    <div class="terminal" id="tkCurlOut" style="max-height:200px">$ waiting...</div>
+  </div>
+
+  <!-- SERVICE VERSION CHECKER -->
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">≡</span>Service Version Checker</div>
+    <div class="flex gap-1 mb-2">
+      <input class="form-input" id="tkSvcHost" placeholder="10.60.X.1"/>
+      <input class="form-input" id="tkSvcPort" placeholder="Port" style="width:90px;flex-shrink:0" type="number"/>
+      <button class="btn btn-cyan" onclick="tkCheckService()">Check</button>
+    </div>
+    <div class="nmap-grid" style="margin-bottom:0.8rem">
+      <button class="nmap-btn" onclick="tkSvcPreset('80','HTTP')"><div class="nmap-btn-title">HTTP :80</div></button>
+      <button class="nmap-btn" onclick="tkSvcPreset('443','HTTPS')"><div class="nmap-btn-title">HTTPS :443</div></button>
+      <button class="nmap-btn" onclick="tkSvcPreset('22','SSH')"><div class="nmap-btn-title">SSH :22</div></button>
+      <button class="nmap-btn" onclick="tkSvcPreset('5432','PostgreSQL')"><div class="nmap-btn-title">PostgreSQL :5432</div></button>
+      <button class="nmap-btn" onclick="tkSvcPreset('3306','MySQL')"><div class="nmap-btn-title">MySQL :3306</div></button>
+      <button class="nmap-btn" onclick="tkSvcPreset('6379','Redis')"><div class="nmap-btn-title">Redis :6379</div></button>
+    </div>
+    <div class="terminal" id="tkSvcOut" style="max-height:180px">$ select a service or enter manually...</div>
+  </div>
+</div>
+
+<!-- ── LDF PAGE ─────────────────────────────────────────────── -->
+<div id="page-ldf" class="page">
+  <div class="page-title">LDF FARM</div>
+  <div class="page-sub">LESS DESTRUCTIVE FARM — RATE LIMITED FLAG SUBMISSION</div>
+
+  <!-- Status + Controls -->
+  <div class="grid-4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val" id="ldfAcc">0</div><div class="stat-lbl">Accepted</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="stat-val" id="ldfRej">0</div><div class="stat-lbl">Rejected</div></div>
+    <div class="stat" style="--accent:var(--cyan)"><div class="stat-val" id="ldfQueue">0</div><div class="stat-lbl">In Queue</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val" id="ldfTotal">0</div><div class="stat-lbl">Submitted</div></div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Controls -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◎</span>Controls</div>
+      <div class="flex gap-1 mb-2">
+        <button class="btn btn-green" onclick="ldfStart()" id="ldfStartBtn">▶ Start LDF</button>
+        <button class="btn btn-danger" onclick="ldfStop()" id="ldfStopBtn">■ Stop</button>
+        <button class="btn btn-ghost btn-sm" onclick="ldfClear()">Clear Queue</button>
+        <button class="btn btn-ghost btn-sm" onclick="ldfRefresh()">↻</button>
+      </div>
+      <div class="tool-status mb-2">
+        <span class="dot dot-off" id="ldfDot"></span>
+        <span id="ldfStatusTxt" class="text-mono text-xs">Stopped</span>
+      </div>
+      <div class="sep"></div>
+      <div class="card-title" style="margin-top:0.8rem"><span class="card-title-icon">⚙</span>Rate Config</div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Flags per second</label>
+          <input class="form-input" id="ldfRate" type="number" value="5" min="1" max="50"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Delay (seconds)</label>
+          <input class="form-input" id="ldfDelay" type="number" value="0.2" step="0.05" min="0.05"/>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="ldfSaveConfig()">Save Rate Config</button>
+    </div>
+
+    <!-- Push flags -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">↑</span>Push Flags to Queue</div>
+      <div class="alert alert-info mb-2" style="font-size:0.68rem">LDF sends flags slowly with rate limiting to avoid gameserver blocks. Start LDF first, then push flags.</div>
+      <div class="form-group">
+        <label class="form-label">Flags (one per line)</label>
+        <textarea class="form-input" id="ldfFlagInput" placeholder="ABCDEF0123456789ABCDEF0123456=" style="min-height:120px"></textarea>
+      </div>
+      <button class="btn btn-cyan" onclick="ldfPush()">Add to Queue</button>
+    </div>
+  </div>
+
+  <!-- Logs -->
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">≡</span>LDF Logs</div>
+    <div class="terminal" id="ldfLogs" style="max-height:250px">(not started)</div>
+    <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="ldfRefresh()">↻ Refresh</button></div>
+  </div>
+</div>
+
+<!-- ── DISCOVERY PAGE ─────────────────────────────────────────────── -->
+<div id="page-discovery" class="page">
+  <div class="page-title">DISCOVERY</div>
+  <div class="page-sub">HOST RADAR · NETWORK MAPPING</div>
+
+  <div class="grid-2 mb-2">
+    <!-- Auto Discover -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◎</span>Auto Discovery — Ping Sweep</div>
+      <div class="form-group">
+        <label class="form-label">IP Template</label>
+        <input class="form-input" id="discTemplate" value="10.60.{id}.1" placeholder="10.60.{id}.1"/>
+      </div>
+      <div class="flex gap-1 mb-1">
+        <div class="form-group" style="flex:1;margin:0">
+          <label class="form-label">From Team ID</label>
+          <input class="form-input" id="discFrom" value="0" type="number"/>
+        </div>
+        <div class="form-group" style="flex:1;margin:0">
+          <label class="form-label">To Team ID</label>
+          <input class="form-input" id="discTo" value="87" type="number"/>
+        </div>
+      </div>
+      <button class="btn btn-red w-full" onclick="runFullDiscovery()" id="discBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        Start Discovery
+      </button>
+      <div id="discProgress" class="text-mono text-xs text-muted mt-1" style="display:none">Scanning...</div>
+    </div>
+    <!-- Manual Add -->
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">+</span>Manual Host Entry</div>
+      <div class="form-group"><label class="form-label">Team ID</label><input class="form-input" id="manualId" placeholder="42" type="number"/></div>
+      <div class="form-group"><label class="form-label">IP Address</label><input class="form-input" id="manualIp" placeholder="10.60.42.1"/></div>
+      <div class="form-group"><label class="form-label">Label (optional)</label><input class="form-input" id="manualLabel" placeholder="Team Forza"/></div>
+      <button class="btn btn-green" onclick="addManualHost()">Add Host</button>
+      <div class="mt-1"><button class="btn btn-danger btn-sm" onclick="clearHosts()">Clear All Hosts</button></div>
+    </div>
+  </div>
+
+  <!-- RADAR MONITOR -->
+  <div class="card">
+    <div class="card-title">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      Radar Monitor — Live Host Visualization
+      <span class="text-mono text-xs" id="radarStats" style="margin-left:auto;color:var(--cyan);font-size:0.6rem"></span>
+    </div>
+    <div class="radar-wrap">
+      <canvas id="radarCanvas" width="700" height="500"></canvas>
+    </div>
+    <div class="radar-hosts" id="radarHostList"></div>
+  </div>
+</div>
+
+<!-- EXPLOITS -->
+<div id="page-exploits" class="page">
+  <div class="page-title">EXPLOITS</div>
+  <div class="page-sub">ATTACK AUTOMATION ENGINE</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">⚡</span>Scripts</div>
+    <div id="exploitList"><div class="text-muted text-xs text-mono">Loading...</div></div>
+    <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="loadExploits()">↻ Refresh</button></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">≡</span>Output</div>
+    <div class="flex gap-1 mb-1" id="exploitTabs"></div>
+    <div class="terminal" id="exploitOut">Select an exploit...</div>
+    <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="refreshExploitLog()">↻ Refresh</button></div>
+  </div>
+</div>
+
+<!-- AI EXPLOITS -->
+<div id="page-ai-exploits" class="page">
+  <div class="page-title">AI EXPLOITS</div>
+  <div class="page-sub">AUTONOMOUS EXPLOIT GENERATION · TULIP INTEGRATION</div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1.2rem">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-family:var(--mono);font-size:0.6rem;letter-spacing:3px;color:var(--muted)">AI</span>
+      <div style="display:flex;border:1px solid var(--border2);border-radius:4px;overflow:hidden">
+        <button id="aie-tog-claude" onclick="aieSetProvider('claude')"
+          style="font-family:var(--mono);font-size:0.65rem;padding:5px 12px;border:none;cursor:pointer;background:rgba(255,45,85,0.15);color:var(--red);letter-spacing:1px;transition:all .15s">CLAUDE</button>
+        <button id="aie-tog-ollama" onclick="aieSetProvider('ollama')"
+          style="font-family:var(--mono);font-size:0.65rem;padding:5px 12px;border:none;cursor:pointer;background:transparent;color:var(--muted);letter-spacing:1px;transition:all .15s">OLLAMA</button>
+      </div>
+      <select id="aie-ollama-model" style="display:none;font-family:var(--mono);font-size:0.65rem;padding:4px 8px;background:var(--surface);border:1px solid var(--border2);border-radius:4px;color:var(--text)">
+        <option value="codellama">codellama</option>
+        <option value="deepseek-coder">deepseek-coder</option>
+        <option value="mistral">mistral</option>
+        <option value="llama3">llama3</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn btn-red btn-sm" onclick="aieRunAll()">⚡ RUN ALL</button>
+      <button class="btn btn-ghost btn-sm" onclick="aieStopAll()">■ STOP ALL</button>
+      <span id="aie-global-badge" style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);letter-spacing:2px">5 SLOTS READY</span>
+    </div>
+  </div>
+
+  <div id="aie-slots" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
+<!-- TEAMS -->
+<div id="page-teams" class="page">
+  <div class="page-title">TEAMS</div>
+  <div class="page-sub">ENEMY TARGETS</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◎</span>Target Map</div>
+    <div class="flex items-center gap-1 mb-2">
+      <input class="form-input" id="teamSearch" placeholder="Search..." style="max-width:220px" oninput="filterTeams()"/>
+      <button class="btn btn-ghost btn-sm" onclick="loadTeams()">↻</button>
+      <span class="text-muted text-xs text-mono" id="teamCount"></span>
+    </div>
+    <div class="team-grid" id="teamGrid"><div class="text-muted text-xs text-mono">Loading...</div></div>
+  </div>
+</div>
+
+<!-- FLAGS -->
+<div id="page-flags" class="page">
+  <div class="page-title">FLAGS</div>
+  <div class="page-sub">CAPTURE &amp; SUBMIT ENGINE</div>
+  <div class="grid-4 mb-2">
+    <div class="stat" style="--accent:var(--green)"><div class="stat-val" id="fAcc">0</div><div class="stat-lbl">Accepted</div></div>
+    <div class="stat" style="--accent:var(--red)"><div class="stat-val" id="fRej">0</div><div class="stat-lbl">Rejected</div></div>
+    <div class="stat" style="--accent:var(--yellow)"><div class="stat-val" id="fQue">0</div><div class="stat-lbl">Queued</div></div>
+    <div class="stat" style="--accent:var(--muted)"><div class="stat-val" id="fTot">0</div><div class="stat-lbl">Total</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">↑</span>Submit</div>
+      <div id="flagAlert"></div>
+      <div class="form-group"><label class="form-label">Flags (one per line)</label>
+        <textarea class="form-input" id="flagInput" placeholder="ABCDEF0123456789ABCDEF0123456="></textarea></div>
+      <button class="btn btn-red" onclick="submitFlags()">Submit Flags</button>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">≡</span>Live Log</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:300px;overflow-y:auto" id="flagLog">
+        <div style="padding:12px;text-align:center" class="text-muted text-xs text-mono">No flags submitted yet</div>
+      </div>
+      <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="loadFlagLog()">↻</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- SSH -->
+<div id="page-ssh" class="page">
+  <div class="page-title">SSH CONSOLE</div>
+  <div class="page-sub">REMOTE COMMAND EXECUTION</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">$_</span>Execute</div>
+    <div class="flex gap-1 mb-2">
+      <input class="form-input" id="sshIn" placeholder="docker ps" onkeydown="if(event.key==='Enter')runSSH()"/>
+      <button class="btn btn-red" onclick="runSSH()">▶ Run</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sshOut').textContent='$ ready'">✕</button>
+    </div>
+    <div class="terminal" id="sshOut" style="max-height:500px">$ ready</div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">◈</span>Quick</div>
+    <div class="grid-3">
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('docker ps --format \'{{.Names}}\\t{{.Ports}}\\t{{.Status}}\'')">docker ps</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('df -h')">disk</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('free -h')">memory</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('ss -tlnp')">ports</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('who')">users</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickSSH('ls -lh /tmp/albania_backup_*.tar.gz 2>/dev/null')">backups</button>
+    </div>
+  </div>
+</div>
+
+<!-- USERS -->
+<div id="page-users" class="page">
+  <div class="page-title">USERS</div>
+  <div class="page-sub">USER MANAGEMENT &amp; SECURITY</div>
+  <div id="usersAlert"></div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">◉</span>Current Users</div>
+      <div id="userList"><div class="text-muted text-xs text-mono">Loading...</div></div>
+      <div class="mt-1"><button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻ Refresh</button></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">+</span>Add User</div>
+      <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="newUsername" placeholder="teammate1"/></div>
+      <div class="form-group"><label class="form-label">Password (min 8 chars)</label><input class="form-input" type="password" id="newUserPass" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-input" id="newUserRole">
+          <option value="viewer">viewer — read only</option>
+          <option value="admin">admin — full access</option>
+        </select>
+      </div>
+      <button class="btn btn-green" onclick="addUser()">Add User</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">▣</span>Change My Password</div>
+    <div class="grid-3">
+      <div class="form-group"><label class="form-label">Current</label><input class="form-input" type="password" id="myOldPass" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">New</label><input class="form-input" type="password" id="myNewPass" placeholder="••••••••"/></div>
+      <div class="form-group"><label class="form-label">Confirm</label><input class="form-input" type="password" id="myNewPass2" placeholder="••••••••"/></div>
+    </div>
+    <button class="btn btn-yellow" onclick="myChangePass()">Change Password</button>
+  </div>
+</div>
+
+<!-- AUDIT LOG -->
+<div id="page-audit" class="page">
+  <div class="page-title">AUDIT LOG</div>
+  <div class="page-sub">ALL PANEL ACTIONS · SECURITY EVENTS</div>
+  <div class="card">
+    <div class="card-title"><span class="card-title-icon">≡</span>Events</div>
+    <div class="flex items-center gap-1 mb-2">
+      <input class="form-input" id="auditSearch" placeholder="Filter..." style="max-width:220px" oninput="filterAudit()"/>
+      <button class="btn btn-ghost btn-sm" onclick="loadAudit()">↻ Refresh</button>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:600px;overflow-y:auto">
+      <div style="display:grid;grid-template-columns:140px 100px 180px 1fr;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border2)">
+        <span class="text-muted text-xs text-mono">TIME</span>
+        <span class="text-muted text-xs text-mono">USER</span>
+        <span class="text-muted text-xs text-mono">ACTION</span>
+        <span class="text-muted text-xs text-mono">DETAIL</span>
+      </div>
+      <div id="auditLog"><div style="padding:12px;text-align:center" class="text-muted text-xs text-mono">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div><!-- end layout -->
+</div><!-- end mainApp -->
+
+<div id="toast"></div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────
+let TOKEN = localStorage.getItem('ctf_token') || '';
+let USER = JSON.parse(localStorage.getItem('ctf_user') || '{}');
+let teamsAll = [], auditAll = [];
+let currentExploit = null;
+let navCollapsed = false;
+
+// Discovery hosts store
+let discoveredHosts = JSON.parse(localStorage.getItem('ctf_hosts') || '[]');
+
+// ── API ──────────────────────────────────────────────────────────
+async function api(method, path, body = null) {
+  try {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${TOKEN}` }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(path, opts);
+    if (r.status === 401) { logout(); return null; }
+    return await r.json();
+  } catch(e) { return { error: e.message }; }
+}
+
+// ── TOAST ────────────────────────────────────────────────────────
+function toast(msg, type = 'ok', duration = 3500) {
+  const t = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item ${type !== 'ok' ? type : ''}`;
+  el.textContent = msg;
+  t.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ── TICK ─────────────────────────────────────────────────────────
+function updateTick() {
+  const secs = new Date().getSeconds() + new Date().getMinutes()*60 + new Date().getHours()*3600;
+  const tick = Math.floor(secs/120), rem = 120-(secs%120);
+  document.getElementById('tickDisplay').textContent = `TICK ${tick} · ${rem}s`;
+}
+
+// ── NAV ──────────────────────────────────────────────────────────
+function nav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('page-' + el.dataset.page).classList.add('active');
+  if (el.dataset.page === 'discovery') startRadar();
+}
+
+function toggleNav() {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    const sidebar = document.querySelector('nav.sidebar');
+    const overlay = document.getElementById('navOverlay');
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    overlay.classList.toggle('show', isOpen);
+  } else {
+    navCollapsed = !navCollapsed;
+    document.getElementById('layout').classList.toggle('nav-collapsed', navCollapsed);
+  }
+}
+
+function closeMobileNav() {
+  const sidebar = document.querySelector('nav.sidebar');
+  const overlay = document.getElementById('navOverlay');
+  if (sidebar) sidebar.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('show');
+}
+
+// ── LOGIN ────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('loginUser').value;
+  const password = document.getElementById('loginPass').value;
+  const alertEl = document.getElementById('loginAlert');
+  alertEl.style.display = 'none';
+
+  const r = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await r.json();
+  if (!r.ok) {
+    alertEl.textContent = data.detail || 'Invalid credentials';
+    alertEl.style.display = 'block';
+    return;
+  }
+  TOKEN = data.token;
+  USER = { username: data.username, role: data.role };
+  localStorage.setItem('ctf_token', TOKEN);
+  localStorage.setItem('ctf_user', JSON.stringify(USER));
+
+  document.getElementById('loginPage').classList.add('hidden');
+
+  if (data.must_change) {
+    document.getElementById('changePassPage').classList.remove('hidden');
+    return;
+  }
+  await checkWizard();
+}
+
+async function doChangePass() {
+  const old = document.getElementById('oldPass').value;
+  const np = document.getElementById('newPass').value;
+  const np2 = document.getElementById('newPass2').value;
+  const alertEl = document.getElementById('changeAlert');
+
+  if (np !== np2) {
+    alertEl.innerHTML = '<div class="alert alert-err">Passwords do not match</div>'; return;
+  }
+  if (np.length < 8) {
+    alertEl.innerHTML = '<div class="alert alert-err">Password must be at least 8 characters</div>'; return;
+  }
+  alertEl.innerHTML = '<div class="alert alert-info">Changing password...</div>';
+  const r = await api('POST', '/api/auth/change_password', { old_password: old, new_password: np });
+  if (r?.ok) {
+    alertEl.innerHTML = '<div class="alert alert-ok">Password changed successfully!</div>';
+    setTimeout(async () => {
+      document.getElementById('changePassPage').classList.add('hidden');
+      document.getElementById('oldPass').value = '';
+      document.getElementById('newPass').value = '';
+      document.getElementById('newPass2').value = '';
+      await checkWizard();
+    }, 800);
+  } else {
+    alertEl.innerHTML = `<div class="alert alert-err">${r?.detail || 'Error changing password'}</div>`;
+  }
+}
+
+async function doLogout() {
+  await api('POST', '/api/auth/logout');
+  logout();
+}
+
+function logout() {
+  TOKEN = ''; USER = {};
+  localStorage.removeItem('ctf_token');
+  localStorage.removeItem('ctf_user');
+  document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// ── WIZARD ───────────────────────────────────────────────────────
+async function checkWizard() {
+  const cfg = await api('GET', '/api/config');
+  if (!cfg?.wizard_done) {
+    document.getElementById('wizardPage').classList.remove('hidden');
+  } else {
+    launchPanel();
+  }
+}
+
+function launchDemoMode() {
+  document.getElementById('wizardPage').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('userBadge').textContent = (USER.username || 'user') + ' ▾';
+  initPanel();
+}
+
+let wzCurrent = 0;
+function wzStep(step) {
+  for (let i = 0; i < 5; i++) {
+    const el = document.getElementById(`wz-${i}`);
+    if (el) el.style.display = i === step ? 'block' : 'none';
+    const ws = document.getElementById(`ws${i}`);
+    if (ws) ws.className = `wizard-step ${i < step ? 'done' : i === step ? 'active' : ''}`;
+  }
+  wzCurrent = step;
+}
+
+async function wzSave() {
+  await api('POST', '/api/config', {
+    vulnbox_ip: document.getElementById('wz-vip').value,
+    gameserver_ip: document.getElementById('wz-gsip').value,
+    team_id: parseInt(document.getElementById('wz-tid').value) || 85,
+    team_name: document.getElementById('wz-tname').value,
+    tulip_path: document.getElementById('wz-tulip').value,
+    tulip_url: document.getElementById('wz-tulip-url').value,
+    s4dfarm_path: document.getElementById('wz-farm').value,
+    s4dfarm_url: document.getElementById('wz-farm-url').value,
+    pcap_dir: document.getElementById('wz-pcap').value,
+  });
+  await api('POST', '/api/secrets', {
+    vulnbox_password: document.getElementById('wz-vpass').value,
+    team_token: document.getElementById('wz-token').value,
+  });
+  wzStep(3);
+  doVerify();
+}
+
+async function doVerify() {
+  const vip = document.getElementById('wz-vip').value;
+  const vpass = document.getElementById('wz-vpass').value;
+  const gsip = document.getElementById('wz-gsip').value;
+  const token = document.getElementById('wz-token').value;
+  const resultsEl = document.getElementById('verifyResults');
+  resultsEl.innerHTML = '<div class="text-mono text-xs text-muted">Testing connections...</div>';
+  const r = await api('POST', '/api/wizard/verify', {
+    vulnbox_ip: vip, vulnbox_password: vpass,
+    team_token: token, gameserver_ip: gsip
+  });
+  const icons = { true: '✅', false: '❌' };
+  const results = r?.results || {};
+  resultsEl.innerHTML = `
+    <div class="verify-item"><span class="verify-icon">${icons[results.vulnbox]}</span><span>Vulnbox SSH — ${results.vulnbox ? 'Connected' : 'Failed'}</span></div>
+    <div class="verify-item"><span class="verify-icon">${icons[results.gameserver]}</span><span>Gameserver — ${results.gameserver ? 'Online' : 'Unreachable'}</span></div>
+    <div class="verify-item"><span class="verify-icon">${icons[results.flagids]}</span><span>Flag IDs API — ${results.flagids ? 'OK' : 'Failed'}</span></div>`;
+  if (r?.all_ok) document.getElementById('wzDoneBtn').style.display = '';
+}
+
+async function wzComplete() {
+  await api('POST', '/api/wizard/complete');
+  wzStep(4);
+}
+
+function launchPanel() {
+  document.getElementById('wizardPage').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('userBadge').textContent = (USER.username || 'user') + ' ▾';
+  initPanel();
+}
+
+// ── EKG HEALTH MONITOR ───────────────────────────────────────────
+const EKG_HISTORY = [];
+const EKG_MAX = 200;
+let ekgAnimId = null;
+let ekgPanic = false; // all services down
+let ekgWarn = false;  // some down
+
+function ekgPush(services) {
+  // services: [{name, up}]
+  const allUp = services.every(s => s.up);
+  const allDown = services.every(s => !s.up);
+  ekgPanic = allDown && services.length > 0;
+  ekgWarn = !allUp && services.length > 0;
+
+  let val;
+  if (ekgPanic) {
+    // flatline at bottom
+    val = 5;
+  } else if (ekgWarn) {
+    // irregular pattern
+    val = 35 + Math.random() * 20;
+  } else {
+    // normal heartbeat waveform
+    const phase = (Date.now() / 120) % (Math.PI * 2);
+    if (Math.abs(Math.sin(phase * 1.5)) < 0.1) {
+      val = 55 + 12 * Math.sin(phase * 8);
+    } else {
+      val = 35 + 5 * Math.sin(phase * 2);
+    }
+  }
+  EKG_HISTORY.push(val);
+  if (EKG_HISTORY.length > EKG_MAX) EKG_HISTORY.shift();
+
+  // Update services indicators
+  const svcEl = document.getElementById('ekgServices');
+  const statusEl = document.getElementById('healthStatusTxt');
+  if (services.length) {
+    svcEl.innerHTML = services.map(s =>
+      `<span class="ekg-svc"><span class="ekg-dot" style="background:${s.up?'var(--green)':'var(--red)'};box-shadow:${s.up?'0 0 6px var(--green)':'0 0 6px var(--red)'}"></span><span style="color:${s.up?'var(--text)':'var(--red)'}">${s.name}</span></span>`
+    ).join('');
+    if (ekgPanic) {
+      statusEl.textContent = '⚠ ALL SERVICES DOWN';
+      statusEl.style.color = 'var(--red)';
+    } else if (ekgWarn) {
+      statusEl.textContent = `${services.filter(s=>!s.up).length} SERVICE(S) DEGRADED`;
+      statusEl.style.color = 'var(--yellow)';
+    } else {
+      statusEl.textContent = 'ALL SYSTEMS NOMINAL';
+      statusEl.style.color = 'var(--green)';
+    }
+  }
+}
+
+function drawEKG() {
+  const canvas = document.getElementById('ekgCanvas');
+  if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 800;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(0,255,136,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  if (EKG_HISTORY.length < 2) { ekgAnimId = requestAnimationFrame(drawEKG); return; }
+
+  const color = ekgPanic ? '#ff2d55' : ekgWarn ? '#ffd200' : '#00ff88';
+  const glowColor = ekgPanic ? 'rgba(255,45,85,0.6)' : ekgWarn ? 'rgba(255,210,0,0.5)' : 'rgba(0,255,136,0.5)';
+
+  // Speed effect when panic
+  const speed = ekgPanic ? 3 : 1;
+
+  // Draw line
+  ctx.shadowBlur = ekgPanic ? 20 : 10;
+  ctx.shadowColor = glowColor;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = ekgPanic ? 2.5 : 1.8;
+  ctx.beginPath();
+
+  const step = W / Math.min(EKG_MAX, EKG_HISTORY.length);
+  EKG_HISTORY.forEach((v, i) => {
+    // Panic mode: add shake
+    const jitter = ekgPanic ? (Math.random() - 0.5) * 8 : 0;
+    const x = i * step;
+    const y = H - (v / 70) * H + jitter;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Moving cursor dot
+  const lastV = EKG_HISTORY[EKG_HISTORY.length - 1];
+  const cx = (EKG_HISTORY.length - 1) * step;
+  const cy = H - (lastV / 70) * H;
+  ctx.shadowBlur = 15;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ekgAnimId = requestAnimationFrame(drawEKG);
+}
+
+// Feed EKG with fake data until real vulnbox responds
+function ekgFeedMock() {
+  const phase = (Date.now() / 400) % (Math.PI * 2);
+  let val;
+  if (phase > 5.5 || phase < 0.3) {
+    val = 55 + 15 * Math.cos(phase * 3);
+  } else {
+    val = 35 + 3 * Math.sin(phase);
+  }
+  EKG_HISTORY.push(val);
+  if (EKG_HISTORY.length > EKG_MAX) EKG_HISTORY.shift();
+}
+
+// ── PCAP SYNC AGE ─────────────────────────────────────────────────
+let _pcapSyncBaseTime = null;
+
+function setPcapSyncTime(raw) {
+  const ageMatch = raw ? raw.match(/(\d+)s ago/) : null;
+  const ageSec = ageMatch ? parseInt(ageMatch[1]) : 0;
+  _pcapSyncBaseTime = Date.now() - ageSec * 1000;
+  const ageEl = document.getElementById('pcapSyncAge');
+  if (ageEl) ageEl.style.display = '';
+  updatePcapSyncAge();
+}
+
+function updatePcapSyncAge() {
+  const el = document.getElementById('pcapSyncAge');
+  if (!el || _pcapSyncBaseTime === null) return;
+  const elapsed = Math.floor((Date.now() - _pcapSyncBaseTime) / 1000);
+  let label;
+  if (elapsed < 60) label = `${elapsed}s ago`;
+  else if (elapsed < 3600) label = `${Math.floor(elapsed/60)}m ${elapsed%60}s ago`;
+  else label = `${Math.floor(elapsed/3600)}h ago`;
+  const color = elapsed > 30 ? 'var(--red)' : elapsed > 12 ? 'var(--yellow)' : 'var(--green)';
+  el.style.color = color;
+  el.textContent = `Last sync: ${label}`;
+}
+
+// ── SLA MONITOR ───────────────────────────────────────────────────
+let _slaDropCount = 0;
+const SLA_HISTORY = [];
+
+async function pollSLA() {
+  try {
+    const r = await api('POST', '/api/vulnbox/sla_check');
+    if (!r || !r.ok) return;
+    if (r.events && r.events.length > 0) {
+      r.events.forEach(ev => {
+        SLA_HISTORY.unshift(ev);
+        const isDown = ev.event === 'DOWN';
+        if (isDown) {
+          _slaDropCount++;
+          toast(`SLA DROP: ${ev.service} went DOWN! (drop #${ev.drops})`, 'err', 7000);
+          const old = document.title;
+          document.title = `⚠ SLA DROP — Albania CTF`;
+          setTimeout(() => { document.title = old; }, 6000);
+        } else {
+          toast(`${ev.service} recovered after ${ev.down_for||'?'}s`, 'ok', 4000);
+        }
+      });
+      if (SLA_HISTORY.length > 100) SLA_HISTORY.length = 100;
+    } else if (SLA_HISTORY.length === 0 && r.sla_log && r.sla_log.length > 0) {
+      r.sla_log.slice().reverse().forEach(ev => SLA_HISTORY.push(ev));
+    }
+    // Feed EKG with real service data
+    if (r.services) ekgPush(r.services);
+    renderSlaLog();
+  } catch(e) {}
+}
+
+function renderSlaLog() {
+  const el = document.getElementById('dSlaLog');
+  if (!el) return;
+  const badge = document.getElementById('slaAlertBadge');
+  if (badge) {
+    if (_slaDropCount > 0) {
+      badge.style.display = '';
+      badge.textContent = `${_slaDropCount} DROP${_slaDropCount > 1 ? 'S' : ''}`;
+    } else badge.style.display = 'none';
+  }
+  if (!SLA_HISTORY.length) {
+    el.innerHTML = '<div class="text-muted text-xs text-mono" style="padding:8px">No SLA events — all services nominal</div>';
+    return;
+  }
+  el.innerHTML = SLA_HISTORY.slice(0, 25).map(ev => {
+    const isDown = ev.event === 'DOWN';
+    const color = isDown ? 'var(--red)' : 'var(--green)';
+    const detail = isDown ? `drop #${ev.drops || '?'}` : `recovered — was down ${ev.down_for || '?'}s`;
+    return `<div class="audit-row">
+      <span class="text-muted">${ev.time}</span>
+      <span style="color:${color}">${ev.service}</span>
+      <span style="color:${color}">${ev.event}</span>
+      <span class="text-muted">${detail}</span></div>`;
+  }).join('');
+}
+
+// ── PANEL INIT ───────────────────────────────────────────────────
+async function initPanel() {
+  updateTick();
+  setInterval(updateTick, 1000);
+  setInterval(updatePcapSyncAge, 1000);
+  // Start EKG with mock data while waiting for real data
+  setInterval(ekgFeedMock, 80);
+  drawEKG();
+  await Promise.all([
+    loadConfig(), refreshVulnbox(), loadTeams(),
+    loadFlagLog(), loadExploits(), refreshTools()
+  ]);
+  setInterval(() => { loadFlagLog(); refreshTools(); ldfRefresh(); }, 8000);
+  setInterval(() => { refreshVulnbox(); loadExploits(); }, 20000);
+  await pollSLA();
+  setInterval(pollSLA, 15000);
+  renderRadarHosts();
+}
+
+// ── CONFIG ───────────────────────────────────────────────────────
+async function loadConfig() {
+  const [cfg, sec] = await Promise.all([api('GET', '/api/config'), api('GET', '/api/secrets')]);
+  if (!cfg) return;
+  document.getElementById('cfgVip').value = cfg.vulnbox_ip || '';
+  document.getElementById('cfgVuser').value = cfg.vulnbox_user || '';
+  document.getElementById('cfgGs').value = cfg.gameserver_ip || '';
+  document.getElementById('cfgTid').value = cfg.team_id || 85;
+  document.getElementById('cfgTulip').value = cfg.tulip_path || '';
+  document.getElementById('cfgTulipUrl').value = cfg.tulip_url || '';
+  document.getElementById('cfgFarm').value = cfg.s4dfarm_path || '';
+  document.getElementById('cfgFarmUrl').value = cfg.s4dfarm_url || '';
+  document.getElementById('cfgPcapDir').value = cfg.pcap_dir || '';
+  document.getElementById('cfgTraffic').value = cfg.traffic_dir || '';
+  document.getElementById('tulipUrl').textContent = cfg.tulip_url || '';
+  document.getElementById('farmUrl').textContent = cfg.s4dfarm_url || '';
+}
+
+async function saveConfig() {
+  const r = await api('POST', '/api/config', {
+    vulnbox_ip: document.getElementById('cfgVip').value,
+    vulnbox_user: document.getElementById('cfgVuser').value,
+    gameserver_ip: document.getElementById('cfgGs').value,
+    team_id: parseInt(document.getElementById('cfgTid').value),
+    tulip_path: document.getElementById('cfgTulip').value,
+    tulip_url: document.getElementById('cfgTulipUrl').value,
+    s4dfarm_path: document.getElementById('cfgFarm').value,
+    s4dfarm_url: document.getElementById('cfgFarmUrl').value,
+    pcap_dir: document.getElementById('cfgPcapDir').value,
+    traffic_dir: document.getElementById('cfgTraffic').value,
+  });
+  const pw = document.getElementById('cfgVpass').value;
+  const tok = document.getElementById('cfgToken').value;
+  const secData = {};
+  if (pw) secData.vulnbox_password = pw;
+  if (tok) secData.team_token = tok;
+  if (Object.keys(secData).length) await api('POST', '/api/secrets', secData);
+  if (r?.ok) { toast('Saved ✓'); document.getElementById('setupAlert').innerHTML = '<div class="alert alert-ok">Config saved.</div>'; }
+  else toast('Save failed', 'err');
+}
+
+// ── VULNBOX ──────────────────────────────────────────────────────
+async function refreshVulnbox() {
+  const r = await api('GET', '/api/vulnbox/status');
+  if (!r) return;
+  const online = r.online;
+  document.getElementById('hVbox').className = `dot ${online ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('hVboxLbl').textContent = online ? 'VULNBOX' : 'OFFLINE';
+  if (online) {
+    document.getElementById('hVPN').className = 'dot dot-on';
+    document.getElementById('hVPNLbl').textContent = 'VPN ON';
+  }
+  if (r.services && r.services.length) ekgPush(r.services);
+  const html = online ? r.services.map(s => `
+    <div class="svc-item">
+      <div><div class="svc-name">${s.name}</div><div class="svc-port">${s.ports||'—'}</div></div>
+      <span class="badge ${s.up?'badge-green':'badge-red'}">${s.up?'UP':'DOWN'}</span>
+    </div>`).join('') : '<div class="text-red text-xs text-mono">Cannot connect to vulnbox</div>';
+  ['dServices', 'vboxServices'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = html; });
+}
+
+async function vboxAct(action) {
+  const alertEl = document.getElementById('vboxAlert');
+  alertEl.innerHTML = '<div class="alert alert-info">Running...</div>';
+  const r = await api('POST', `/api/vulnbox/${action}`);
+  if (r?.ok !== false) {
+    toast(`${action} ✓`);
+    if (r?.new_password) alertEl.innerHTML = `<div class="alert alert-ok">New password: <strong>${r.new_password}</strong> — SAVE THIS!</div>`;
+    else if (r?.path) alertEl.innerHTML = `<div class="alert alert-ok">Backup: ${r.path}</div>`;
+    else alertEl.innerHTML = `<div class="alert alert-ok">${action} done.</div>`;
+  } else { alertEl.innerHTML = `<div class="alert alert-err">${r?.detail || 'Failed'}</div>`; toast(`${action} failed`, 'err'); }
+}
+
+async function quickCmd(cmd) {
+  const out = document.getElementById('quickOut');
+  out.textContent = `$ ${cmd}\nRunning...`;
+  const r = await api('POST', '/api/vulnbox/ssh', { command: cmd, timeout: 15 });
+  out.textContent = `$ ${cmd}\n${r?.stdout || ''}${r?.stderr ? '\n[ERR] '+r.stderr : ''}`;
+}
+
+// ── TOOLS ────────────────────────────────────────────────────────
+async function refreshTools() {
+  const r = await api('GET', '/api/tools/status');
+  if (!r) return;
+  const tulip = r.tulip || {};
+  document.getElementById('tulipDot').className = `dot ${tulip.running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('tulipStatus').textContent = tulip.running ? 'Running' : 'Stopped';
+  const toBtn = document.getElementById('tulipOpenBtn');
+  if (tulip.url) { toBtn.style.display = ''; toBtn.href = tulip.url; }
+  document.getElementById('hTulip').className = `dot ${tulip.running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('hTulipLbl').textContent = tulip.running ? 'TULIP' : 'TULIP OFF';
+  const farm = r.farm || {};
+  document.getElementById('farmDot').className = `dot ${farm.running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('farmStatus').textContent = farm.running ? 'Running' : 'Stopped';
+  const foBtn = document.getElementById('farmOpenBtn');
+  if (farm.url) { foBtn.style.display = ''; foBtn.href = farm.url; }
+  const pcap = r.pcap || {};
+  document.getElementById('pcapDot').className = `dot ${pcap.running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('pcapStatus').textContent = pcap.running ? 'Running' : 'Stopped';
+  document.getElementById('pcapDetail').textContent = `${pcap.count||0} PCAPs captured`;
+  if (pcap.last_sync) setPcapSyncTime(pcap.last_sync);
+  document.getElementById('hPcap').className = `dot ${pcap.running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('hPcapLbl').textContent = pcap.running ? 'PCAP' : 'PCAP OFF';
+  document.getElementById('dPcap').textContent = pcap.count || 0;
+  const d = document.getElementById('dTools');
+  if (d) d.innerHTML = `
+    <div class="svc-item"><div class="svc-name">Tulip</div><span class="badge ${tulip.running?'badge-green':'badge-red'}">${tulip.running?'RUNNING':'STOPPED'}</span></div>
+    <div class="svc-item"><div class="svc-name">S4DFarm</div><span class="badge ${farm.running?'badge-green':'badge-red'}">${farm.running?'RUNNING':'STOPPED'}</span></div>
+    <div class="svc-item"><div class="svc-name">PCAP Sync</div><span class="badge ${pcap.running?'badge-green':'badge-red'}">${pcap.running?'RUNNING':'STOPPED'}</span></div>`;
+}
+
+async function toolAct(tool, action) {
+  const r = await api('POST', `/api/tools/${tool}/${action}`);
+  toast(`${tool} ${action} ${r?.ok !== false ? '✓' : '✗'}`);
+  setTimeout(refreshTools, 2000);
+}
+
+function openTool(tool) {
+  const cfg_id = tool === 'tulip' ? 'cfgTulipUrl' : 'cfgFarmUrl';
+  const url = document.getElementById(cfg_id)?.value;
+  if (url) window.open(url, '_blank');
+}
+
+async function loadToolLogs(tool) {
+  const logEl = document.getElementById(`${tool}Logs`);
+  if (!logEl) return;
+  logEl.style.display = logEl.style.display === 'none' ? 'block' : 'none';
+  if (logEl.style.display === 'block') {
+    const r = await api('GET', `/api/tools/${tool}/logs`);
+    logEl.textContent = r?.logs || '(no logs)';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+}
+
+async function pcapStart() {
+  const r = await api('POST', '/api/tools/pcap/start');
+  toast(r?.ok ? 'PCAP started ✓' : 'PCAP start failed', r?.ok ? 'ok' : 'err');
+  setTimeout(refreshTools, 1000);
+}
+async function pcapStop() {
+  await api('POST', '/api/tools/pcap/stop');
+  toast('PCAP stopped');
+  setTimeout(refreshTools, 1000);
+}
+async function loadPcapLogs() {
+  const el = document.getElementById('pcapLogs');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') {
+    const r = await api('GET', '/api/tools/pcap/logs');
+    el.textContent = r?.logs || '(empty)';
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+async function runDiscovery() {
+  const el = document.getElementById('discoveryResult');
+  el.textContent = 'Scanning... (this may take 30-60s)';
+  const r = await api('POST', '/api/tools/discovery');
+  if (!r) { el.textContent = 'Failed'; return; }
+  el.innerHTML = `<span class="badge badge-green">${r.total_alive} ALIVE</span> <span class="badge badge-gray">${(r.dead||[]).length} DEAD</span>
+    <br><br>${(r.alive||[]).map(t => `<span class="badge badge-green" style="margin:2px">#${t.id} ${t.ip}</span>`).join(' ')}`;
+}
+
+async function pullServices() {
+  const el = document.getElementById('pullOutput');
+  el.style.display = 'block'; el.textContent = 'Pulling services...';
+  const r = await api('POST', '/api/tools/pull');
+  el.textContent = r?.output || r?.error || '(done)';
+  toast(r?.ok ? 'Services pulled ✓' : 'Pull failed', r?.ok ? 'ok' : 'err');
+}
+
+// ── TOOLKIT FUNCTIONS ─────────────────────────────────────────────
+async function tkDoBackup() {
+  const dir = document.getElementById('tkBackupDir').value || '/home/kali/albania-backups';
+  const log = document.getElementById('tkBackupLog');
+  log.style.display = 'block';
+  log.textContent = `[${new Date().toLocaleTimeString()}] Starting backup to ${dir}...\n`;
+  const r = await api('POST', '/api/vulnbox/backup', { local_dir: dir });
+  if (r?.ok !== false) {
+    const now = new Date();
+    document.getElementById('tkBackupInfo').style.display = 'grid';
+    document.getElementById('tkBkTime').textContent = now.toLocaleTimeString();
+    document.getElementById('tkBkSize').textContent = r?.size || '—';
+    document.getElementById('tkBkCount').textContent = r?.count || '—';
+    log.textContent += `[OK] ${r?.path || 'Backup created successfully'}\n`;
+    toast('Backup completed ✓');
+  } else {
+    log.textContent += `[ERR] ${r?.detail || 'Backup failed'}\n`;
+    toast('Backup failed', 'err');
+  }
+}
+
+function tkFillVulnboxIP() {
+  const ip = document.getElementById('cfgVip')?.value || '';
+  document.getElementById('tkNmapTarget').value = ip;
+}
+
+async function tkNmap(flags, label) {
+  const target = document.getElementById('tkNmapTarget').value.trim();
+  if (!target) { toast('Enter a target IP first', 'warn'); return; }
+  const out = document.getElementById('tkNmapOut');
+  out.textContent = `$ nmap ${flags} ${target}\n[Running ${label} — this may take a while...]\n`;
+  const cmd = `nmap ${flags} ${target} 2>&1`;
+  const r = await api('POST', '/api/vulnbox/ssh', { command: cmd, timeout: 120 });
+  out.textContent = `$ nmap ${flags} ${target}\n${r?.stdout || r?.stderr || '(no output)'}`;
+  out.scrollTop = out.scrollHeight;
+}
+
+async function tkCurl(extraFlags = '') {
+  const url = document.getElementById('tkCurlUrl').value.trim();
+  if (!url) { toast('Enter a URL first', 'warn'); return; }
+  const method = document.getElementById('tkCurlMethod').value;
+  const extra = document.getElementById('tkCurlExtra').value;
+  const out = document.getElementById('tkCurlOut');
+  const cmd = `curl -s -X ${method} ${extraFlags} ${extra} "${url}" 2>&1 | head -200`;
+  out.textContent = `$ curl -X ${method} ${url}\n[Sending...]\n`;
+  const r = await api('POST', '/api/vulnbox/ssh', { command: cmd, timeout: 30 });
+  out.textContent = `$ curl -X ${method} ${url}\n${r?.stdout || r?.stderr || '(no response)'}`;
+}
+
+function tkSvcPreset(port, label) {
+  document.getElementById('tkSvcPort').value = port;
+  if (!document.getElementById('tkSvcHost').value) {
+    document.getElementById('tkSvcHost').value = document.getElementById('cfgVip')?.value || '';
+  }
+  tkCheckService();
+}
+
+async function tkCheckService() {
+  const host = document.getElementById('tkSvcHost').value.trim();
+  const port = document.getElementById('tkSvcPort').value.trim();
+  if (!host || !port) { toast('Enter host and port', 'warn'); return; }
+  const out = document.getElementById('tkSvcOut');
+  out.textContent = `$ Checking ${host}:${port}...\n`;
+  const cmd = `nmap -sV -p ${port} --version-intensity 9 ${host} 2>&1 && echo "---NETCAT---" && timeout 3 nc -w2 ${host} ${port} < /dev/null 2>&1 || true`;
+  const r = await api('POST', '/api/vulnbox/ssh', { command: cmd, timeout: 30 });
+  out.textContent = `$ Service check ${host}:${port}\n${r?.stdout || r?.stderr || '(timeout or closed)'}`;
+}
+
+// ── DISCOVERY PAGE ────────────────────────────────────────────────
+function saveHosts() {
+  localStorage.setItem('ctf_hosts', JSON.stringify(discoveredHosts));
+}
+
+function addManualHost() {
+  const id = parseInt(document.getElementById('manualId').value) || 0;
+  const ip = document.getElementById('manualIp').value.trim();
+  const label = document.getElementById('manualLabel').value.trim();
+  if (!ip) { toast('Enter an IP', 'warn'); return; }
+  const existing = discoveredHosts.findIndex(h => h.ip === ip);
+  if (existing >= 0) {
+    discoveredHosts[existing] = { id, ip, label, alive: true, manual: true };
+  } else {
+    discoveredHosts.push({ id, ip, label, alive: true, manual: true });
+  }
+  saveHosts();
+  renderRadarHosts();
+  toast(`Host ${ip} added`);
+}
+
+function clearHosts() {
+  if (!confirm('Clear all discovered hosts?')) return;
+  discoveredHosts = [];
+  saveHosts();
+  renderRadarHosts();
+}
+
+async function runFullDiscovery() {
+  const template = document.getElementById('discTemplate').value || '10.60.{id}.1';
+  const from = parseInt(document.getElementById('discFrom').value) || 0;
+  const to = parseInt(document.getElementById('discTo').value) || 87;
+  const btn = document.getElementById('discBtn');
+  const prog = document.getElementById('discProgress');
+  btn.disabled = true;
+  prog.style.display = 'block';
+  prog.textContent = `Scanning ${to - from} hosts... (may take 1-2 min)`;
+
+  const r = await api('POST', '/api/tools/discovery', { from_id: from, to_id: to, template });
+  if (!r) { prog.textContent = 'Discovery failed'; btn.disabled = false; return; }
+
+  (r.alive || []).forEach(t => {
+    const existing = discoveredHosts.findIndex(h => h.ip === t.ip);
+    if (existing >= 0) discoveredHosts[existing].alive = true;
+    else discoveredHosts.push({ id: t.id, ip: t.ip, alive: true });
+  });
+  (r.dead || []).forEach(t => {
+    const existing = discoveredHosts.findIndex(h => h.ip === t.ip);
+    if (existing >= 0) discoveredHosts[existing].alive = false;
+    else discoveredHosts.push({ id: t.id, ip: t.ip, alive: false });
+  });
+
+  saveHosts();
+  renderRadarHosts();
+  prog.textContent = `Done: ${r.total_alive} alive, ${(r.dead||[]).length} dead`;
+  btn.disabled = false;
+  document.getElementById('radarStats').textContent = `${r.total_alive} alive / ${discoveredHosts.length} total`;
+  toast(`Discovery: ${r.total_alive} hosts alive`);
+}
+
+function renderRadarHosts() {
+  const el = document.getElementById('radarHostList');
+  if (!el) return;
+  if (!discoveredHosts.length) {
+    el.innerHTML = '<div class="text-muted text-xs text-mono" style="padding:8px;text-align:center">No hosts discovered yet — run a scan or add manually</div>';
+    return;
+  }
+  const alive = discoveredHosts.filter(h => h.alive);
+  const dead  = discoveredHosts.filter(h => !h.alive);
+  document.getElementById('radarStats').textContent = `${alive.length} alive / ${discoveredHosts.length} total`;
+  el.innerHTML = [...alive, ...dead].map(h => `
+    <div class="radar-host ${h.alive?'':'dead'}" onclick="navigator.clipboard.writeText('${h.ip}');toast('Copied: ${h.ip}')" title="Click to copy IP">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="${h.alive?'var(--green)':'var(--muted)'}" stroke-width="2" style="flex-shrink:0">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        <span style="font-size:0.55rem;color:${h.alive?'var(--text)':'var(--muted)'};letter-spacing:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">${h.label||('#'+h.id)}</span>
+        <span style="margin-left:auto;width:5px;height:5px;border-radius:50%;background:${h.alive?'var(--green)':'#333'};flex-shrink:0;${h.alive?'box-shadow:0 0 4px var(--green)':''}"></span>
+      </div>
+      <div style="font-family:var(--mono);font-size:0.58rem;color:${h.alive?'var(--cyan)':'var(--muted)'};letter-spacing:1px">${h.ip}</div>
+      <div style="font-family:var(--mono);font-size:0.45rem;color:${h.alive?'rgba(0,255,136,.5)':'#2a2a40'};margin-top:2px;letter-spacing:1px">${h.alive?'● ONLINE':'○ DOWN'}</div>
+    </div>`
+  ).join('');
+}
+
+// ── RADAR CANVAS ──────────────────────────────────────────────────
+let radarAngle = 0;
+let radarRunning = false;
+let radarAnimId = null;
+
+function startRadar() {
+  if (radarRunning) return;
+  radarRunning = true;
+  drawRadar();
+}
+
+function drawRadar() {
+  const canvas = document.getElementById('radarCanvas');
+  if (!canvas) { radarRunning = false; return; }
+
+  // Responsive canvas size
+  const wrap = canvas.parentElement;
+  if (wrap) {
+    const maxW = Math.min(wrap.clientWidth - 20, 700);
+    const maxH = Math.round(maxW * 5/7); // maintain aspect ratio
+    if (canvas.width !== maxW) { canvas.width = maxW; canvas.height = maxH; }
+  }
+
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const R = Math.min(cx, cy) - 20;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  ctx.fillStyle = '#010108';
+  ctx.fillRect(0,0,W,H);
+
+  // Outer border glow
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(0,255,136,0.2)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Grid rings — brighter
+  for (let i = 1; i <= 4; i++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * i/4, 0, Math.PI * 2);
+    ctx.strokeStyle = i === 4 ? 'rgba(0,255,136,0.18)' : 'rgba(0,255,136,0.10)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Grid lines — 12 spokes
+  for (let a = 0; a < 360; a += 30) {
+    const rad = a * Math.PI / 180;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(rad)*R, cy + Math.sin(rad)*R);
+    ctx.strokeStyle = 'rgba(0,255,136,0.07)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Sweep trail
+  const trailLen = Math.PI * 0.55;
+  for (let i = 0; i < 50; i++) {
+    const a = radarAngle - (trailLen/50) * i;
+    const alpha = (1 - i/50) * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, a - 0.07, a + 0.01);
+    ctx.closePath();
+    ctx.fillStyle = `rgba(0,255,136,${alpha})`;
+    ctx.fill();
+  }
+
+  // Sweep line — brighter
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(radarAngle)*R, cy + Math.sin(radarAngle)*R);
+  ctx.strokeStyle = 'rgba(0,255,136,1)';
+  ctx.lineWidth = 2.5;
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = 'rgba(0,255,136,0.8)';
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#00ff88';
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = '#00ff88';
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Draw discovered hosts — spread properly inside radar circle
+  discoveredHosts.forEach((h) => {
+    // Better spread: use Fibonacci/golden angle + multiple rings
+    const goldenAngle = 2.399963; // radians
+    const angle = h.id * goldenAngle;
+    // Distribute across 4 rings: inner 30% to outer 90% of R
+    const ring = (h.id % 4) + 1;
+    const baseR = ring / 4;
+    const jitter = ((h.id * 31 + 7) % 20) / 100; // 0..0.19
+    const dist = (baseR * 0.7 + 0.15 + jitter) * R;
+
+    const hx = cx + Math.cos(angle) * dist;
+    const hy = cy + Math.sin(angle) * dist;
+
+    // Skip if outside circle
+    if (Math.sqrt((hx-cx)**2 + (hy-cy)**2) > R - 15) return;
+
+    // Sweep blip
+    const hostAngle = Math.atan2(hy - cy, hx - cx);
+    let diff = (radarAngle - hostAngle + Math.PI*2) % (Math.PI*2);
+    if (diff > Math.PI) diff = Math.PI*2 - diff;
+    const isLit = diff < 0.2;
+
+    const alive = h.alive;
+    const dotR   = isLit ? 7 : (alive ? 5 : 4);
+    const dotClr = isLit ? '#ffffff' : (alive ? '#00ff88' : '#ff2d55');
+    const glowClr = alive ? '#00ff88' : '#ff2d55';
+
+    // Dot
+    ctx.beginPath();
+    ctx.arc(hx, hy, dotR, 0, Math.PI*2);
+    ctx.fillStyle = dotClr;
+    ctx.shadowBlur = isLit ? 22 : (alive ? 10 : 6);
+    ctx.shadowColor = isLit ? '#ffffff' : glowClr;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Name label — always white, bold when lit
+    const name = (h.label||'#'+h.id).replace('🦅 ','');
+    const short = name.length > 13 ? name.slice(0,12)+'…' : name;
+    ctx.font = (isLit ? 'bold ' : '') + '10px "Space Mono"';
+    ctx.fillStyle = isLit ? '#ffffff' : (alive ? 'rgba(255,255,255,0.85)' : 'rgba(255,80,80,0.85)');
+    ctx.shadowBlur = isLit ? 6 : 0;
+    ctx.shadowColor = '#fff';
+    // position label: right if left half, left if right half
+    const flip = hx > cx;
+    ctx.textAlign = flip ? 'left' : 'right';
+    ctx.fillText(short, hx + (flip ? dotR+4 : -(dotR+4)), hy - 3);
+
+    // IP — cyan, always visible
+    ctx.font = '8px "Space Mono"';
+    ctx.fillStyle = isLit ? '#00ff88' : 'rgba(0,212,255,0.75)';
+    ctx.shadowBlur = 0;
+    ctx.fillText(h.ip, hx + (flip ? dotR+4 : -(dotR+4)), hy + 9);
+    ctx.textAlign = 'left';
+  });
+
+  // Cardinal labels — white, bigger
+  ctx.font = 'bold 11px "Space Mono"';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.textAlign = 'center';
+  ctx.fillText('N', cx, cy - R + 16);
+  ctx.fillText('S', cx, cy + R - 6);
+  ctx.textAlign = 'left';
+  ctx.fillText('E', cx + R - 14, cy + 5);
+  ctx.textAlign = 'right';
+  ctx.fillText('W', cx - R + 14, cy + 5);
+  ctx.textAlign = 'left';
+
+  radarAngle += 0.022;
+  if (radarAngle > Math.PI * 2) radarAngle -= Math.PI * 2;
+  radarAnimId = requestAnimationFrame(drawRadar);
+}
+
+// ── EXPLOITS ─────────────────────────────────────────────────────
+async function loadExploits() {
+  const r = await api('GET', '/api/exploits');
+  if (!r) return;
+  const running = (r.exploits||[]).filter(e => e.running).length;
+  const badge = document.getElementById('exploitBadge');
+  badge.style.display = running > 0 ? '' : 'none';
+  badge.textContent = running;
+  const list = document.getElementById('exploitList');
+  const tabs = document.getElementById('exploitTabs');
+  if (!r.exploits?.length) { list.innerHTML = '<div class="text-muted text-xs text-mono">No exploits in /exploits/ folder</div>'; return; }
+  list.innerHTML = r.exploits.map(ex => `
+    <div class="tool-card" style="${ex.running?'border-color:rgba(0,255,136,0.3)':''}">
+      <div class="tool-header">
+        <div><div class="tool-name">${ex.name}</div><div class="text-xs text-muted text-mono">${ex.file} · ${ex.size}B</div></div>
+        <div class="flex gap-1">
+          ${ex.running
+            ? `<button class="btn btn-danger btn-sm" onclick="stopExploit('${ex.name}')">■ Stop</button>`
+            : `<button class="btn btn-green btn-sm" onclick="runExploit('${ex.name}')">▶ Run</button>`}
+          <button class="btn btn-ghost btn-sm" onclick="viewLog('${ex.name}')">Log</button>
+        </div>
+      </div>
+    </div>`).join('');
+  tabs.innerHTML = r.exploits.map(ex =>
+    `<button class="btn btn-ghost btn-sm ${currentExploit===ex.name?'btn-cyan':''}" onclick="viewLog('${ex.name}')">${ex.name}</button>`
+  ).join('');
+}
+
+async function runExploit(name) {
+  const r = await api('POST', `/api/exploits/${name}/run`);
+  toast(r?.ok ? `${name} started ✓` : `Failed: ${r?.error}`, r?.ok ? 'ok' : 'err');
+  setTimeout(loadExploits, 500);
+}
+async function stopExploit(name) {
+  await api('POST', `/api/exploits/${name}/stop`);
+  toast(`${name} stopped`);
+  setTimeout(loadExploits, 500);
+}
+async function viewLog(name) {
+  currentExploit = name;
+  const r = await api('GET', `/api/exploits/${name}/logs`);
+  document.getElementById('exploitOut').textContent = r?.logs || '(no output)';
+  loadExploits();
+}
+async function refreshExploitLog() { if(currentExploit) viewLog(currentExploit); }
+
+// ── TEAMS ────────────────────────────────────────────────────────
+async function loadTeams() {
+  const r = await api('GET', '/api/teams');
+  teamsAll = r?.teams || [];
+  renderTeams(teamsAll);
+  document.getElementById('teamCount').textContent = `${teamsAll.length} targets`;
+  document.getElementById('dTeams').textContent = teamsAll.length;
+}
+function renderTeams(teams) {
+  const g = document.getElementById('teamGrid');
+  g.innerHTML = teams.map(t => `
+    <div class="team-item" onclick="navigator.clipboard.writeText('${t.ip}');toast('Copied: ${t.ip}')">
+      <div class="text-mono">#${t.id} ${t.name}</div>
+      <div class="team-ip">${t.ip}</div>
+    </div>`).join('') || '<div class="text-muted text-xs text-mono">No teams</div>';
+}
+function filterTeams() {
+  const q = document.getElementById('teamSearch').value.toLowerCase();
+  renderTeams(teamsAll.filter(t => t.name.toLowerCase().includes(q) || t.ip.includes(q) || String(t.id).includes(q)));
+}
+
+// ── FLAGS ────────────────────────────────────────────────────────
+async function submitFlags() {
+  const raw = document.getElementById('flagInput').value;
+  const flags = raw.match(/[A-Z0-9]{31}=/g) || [];
+  if (!flags.length) { toast('No valid flags', 'err'); return; }
+  const r = await api('POST', '/api/flags/submit', { flags, source: 'manual' });
+  if (r?.ok) { toast(`Submitted ${r.submitted} flags ✓`); document.getElementById('flagInput').value = ''; loadFlagLog(); }
+  else toast(`Error: ${r?.error}`, 'err');
+}
+
+async function loadFlagLog() {
+  const r = await api('GET', '/api/flags/log?limit=100');
+  if (!r) return;
+  const stats = r.stats || {};
+  const a = stats.accepted||0, rj = stats.rejected||0, q = stats.queued||0;
+  const tot = a+rj+q+(stats.error||0);
+  ['dAccepted','fAcc'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=a; });
+  ['dRejected','fRej'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=rj; });
+  const fq=document.getElementById('fQue'); if(fq) fq.textContent=q;
+  const ft=document.getElementById('fTot'); if(ft) ft.textContent=tot;
+  const badge=document.getElementById('flagBadge');
+  if(a>0){badge.style.display='';badge.textContent=a;}
+  const flags = r.flags || [];
+  const log = document.getElementById('flagLog');
+  if (!flags.length) { log.innerHTML = '<div style="padding:12px;text-align:center" class="text-muted text-xs text-mono">No flags yet</div>'; return; }
+  log.innerHTML = flags.map(f => `
+    <div class="flag-row ${(f.status||'').toLowerCase()}">
+      <span class="text-muted">${f.time}</span>
+      <span class="text-mono" style="font-size:0.63rem">${(f.flag||'?').substring(0,16)}...</span>
+      <span class="badge ${f.status==='ACCEPTED'?'badge-green':f.status==='REJECTED'?'badge-red':'badge-yellow'}">${f.status||'?'}</span>
+      <span class="text-muted">${f.source||''}</span>
+    </div>`).join('');
+  const df = document.getElementById('dFlags');
+  if (df) df.innerHTML = flags.slice(0,5).map(f =>
+    `<div class="flex items-center gap-1 mb-1"><span class="badge ${f.status==='ACCEPTED'?'badge-green':f.status==='REJECTED'?'badge-red':'badge-yellow'}">${f.status}</span><span class="text-mono text-xs text-muted">${(f.flag||'?').substring(0,12)}...</span></div>`
+  ).join('');
+}
+
+// ── SSH ──────────────────────────────────────────────────────────
+async function runSSH() {
+  const cmd = document.getElementById('sshIn').value;
+  if (!cmd) return;
+  const out = document.getElementById('sshOut');
+  out.textContent += `\n\n$ ${cmd}\nRunning...`;
+  out.scrollTop = out.scrollHeight;
+  const r = await api('POST', '/api/vulnbox/ssh', { command: cmd, timeout: 30 });
+  const res = (r?.stdout||'') + (r?.stderr ? '\n[ERR] '+r.stderr : '');
+  out.textContent = out.textContent.replace('Running...', res || '(no output)');
+  out.scrollTop = out.scrollHeight;
+}
+function quickSSH(cmd) { document.getElementById('sshIn').value = cmd; runSSH(); }
+
+// ── USERS ────────────────────────────────────────────────────────
+async function loadUsers() {
+  const r = await api('GET', '/api/auth/users');
+  const ul = document.getElementById('userList');
+  if (!r?.users) { ul.innerHTML = '<div class="alert alert-err">Admin required</div>'; return; }
+  ul.innerHTML = r.users.map(u => `
+    <div class="svc-item">
+      <div>
+        <div class="svc-name">${u.username} ${u.must_change ? '<span class="badge badge-yellow">MUST CHANGE PASS</span>' : ''}</div>
+        <div class="text-xs text-muted text-mono">${u.role}</div>
+      </div>
+      ${u.username !== 'admin' ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.username}')">Delete</button>` : ''}
+    </div>`).join('');
+}
+
+async function addUser() {
+  const username = document.getElementById('newUsername').value;
+  const password = document.getElementById('newUserPass').value;
+  const role = document.getElementById('newUserRole').value;
+  const r = await api('POST', '/api/auth/users', { username, password, role });
+  if (r?.ok) { toast(`User ${username} added ✓`); loadUsers(); document.getElementById('usersAlert').innerHTML = '<div class="alert alert-ok">User added.</div>'; }
+  else toast(`Failed: ${r?.detail || 'Error'}`, 'err');
+}
+
+async function deleteUser(username) {
+  if (!confirm(`Delete user "${username}"?`)) return;
+  const r = await api('DELETE', `/api/auth/users/${username}`);
+  if (r?.ok) { toast(`User ${username} deleted`); loadUsers(); }
+  else toast('Failed', 'err');
+}
+
+async function myChangePass() {
+  const old = document.getElementById('myOldPass').value;
+  const np = document.getElementById('myNewPass').value;
+  const np2 = document.getElementById('myNewPass2').value;
+  if (np !== np2) { toast('Passwords do not match', 'err'); return; }
+  const r = await api('POST', '/api/auth/change_password', { old_password: old, new_password: np });
+  if (r?.ok) toast('Password changed ✓');
+  else toast(`Failed: ${r?.detail || 'Error'}`, 'err');
+}
+
+// ── AUDIT LOG ────────────────────────────────────────────────────
+async function loadAudit() {
+  const r = await api('GET', '/api/logs/audit?tail=300');
+  auditAll = r?.logs || [];
+  renderAudit(auditAll);
+}
+
+function renderAudit(logs) {
+  const el = document.getElementById('auditLog');
+  if (!logs.length) { el.innerHTML = '<div style="padding:12px;text-align:center" class="text-muted text-xs text-mono">No events yet</div>'; return; }
+  const actionColor = (a) => {
+    if (a.includes('FAILED')) return 'text-red';
+    if (a.includes('DELETE') || a.includes('STOP')) return 'text-yellow';
+    if (a.includes('START') || a.includes('SUCCESS') || a.includes('OK')) return 'text-green';
+    return 'text-muted';
+  };
+  el.innerHTML = logs.map(l => `
+    <div class="audit-row">
+      <span class="text-muted">${l.time}</span>
+      <span class="text-cyan">${l.user}</span>
+      <span class="${actionColor(l.action)}">${l.action}</span>
+      <span class="text-muted">${l.detail} ${l.ip ? '· '+l.ip : ''}</span>
+    </div>`).join('');
+}
+
+function filterAudit() {
+  const q = document.getElementById('auditSearch').value.toLowerCase();
+  renderAudit(auditAll.filter(l => JSON.stringify(l).toLowerCase().includes(q)));
+}
+
+// ── LDF ──────────────────────────────────────────────────────
+async function ldfStart() {
+  const r = await api('POST', '/api/ldf/start');
+  toast(r?.ok ? 'LDF started ✓' : (r?.error || 'Failed'), r?.ok ? 'ok' : 'err');
+  ldfRefresh();
+}
+async function ldfStop() {
+  await api('POST', '/api/ldf/stop');
+  toast('LDF stopped');
+  ldfRefresh();
+}
+async function ldfPush() {
+  const raw = document.getElementById('ldfFlagInput').value;
+  const flags = raw.match(/[A-Z0-9]{31}=/g) || [];
+  if (!flags.length) { toast('No valid flags found', 'err'); return; }
+  const r = await api('POST', '/api/ldf/push', { flags });
+  if (r?.ok) {
+    toast(`${r.queued} flags queued (total: ${r.total_queue})`);
+    document.getElementById('ldfFlagInput').value = '';
+    ldfRefresh();
+  } else toast('Push failed', 'err');
+}
+async function ldfClear() {
+  const r = await api('POST', '/api/ldf/clear');
+  toast(`Queue cleared (${r?.cleared || 0} flags removed)`);
+  ldfRefresh();
+}
+async function ldfSaveConfig() {
+  const rate = parseInt(document.getElementById('ldfRate').value);
+  const delay = parseFloat(document.getElementById('ldfDelay').value);
+  const r = await api('POST', '/api/ldf/config', { rate, delay });
+  if (r?.ok) toast('LDF config saved ✓');
+}
+async function ldfRefresh() {
+  const [status, logs] = await Promise.all([
+    api('GET', '/api/ldf/status'),
+    api('GET', '/api/ldf/logs?tail=100'),
+  ]);
+  if (!status) return;
+  const running = status.running;
+  document.getElementById('ldfDot').className = `dot ${running ? 'dot-on' : 'dot-off'}`;
+  document.getElementById('ldfStatusTxt').textContent = running ? 'Running' : 'Stopped';
+  const stats = status.stats || {};
+  document.getElementById('ldfAcc').textContent = stats.accepted || 0;
+  document.getElementById('ldfRej').textContent = stats.rejected || 0;
+  document.getElementById('ldfQueue').textContent = status.queue || 0;
+  document.getElementById('ldfTotal').textContent = stats.submitted || 0;
+  const badge = document.getElementById('ldfBadge');
+  if (status.queue > 0) { badge.style.display = ''; badge.textContent = status.queue; }
+  else badge.style.display = 'none';
+  if (logs?.logs) {
+    const el = document.getElementById('ldfLogs');
+    el.textContent = logs.logs;
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+// ── AUTO-LOGIN ───────────────────────────────────────────────────
+(async () => {
+  if (TOKEN) {
+    const me = await api('GET', '/api/auth/me');
+    if (me?.username) {
+      USER = me;
+      document.getElementById('loginPage').classList.add('hidden');
+      await checkWizard();
+    } else {
+      TOKEN = ''; localStorage.removeItem('ctf_token');
+    }
+  }
+  setInterval(updateTick, 1000);
+  updateTick();
+})();
+
+// ════════════════════════════════════════════
+// AI EXPLOITS
+// ════════════════════════════════════════════
+const AIE = {
+  provider: 'claude',
+  timer: null,
+  slots: [0,1,2,3,4].map(i => ({
+    id:i, service:'', port:[8080,5000,3306,22,9000][i],
+    open:false, status:'idle', progress:0,
+    log:[], exploit_code:'', exploit_file:'',
+    flags_found:0, flows_count:0,
+  })),
+};
+const AIE_LBL = {idle:'IDLE',fetching:'FETCHING TULIP',analyzing:'AI ANALYZING',generating:'GENERATING',ready:'READY',running:'RUNNING',paused:'PAUSED',error:'ERROR'};
+const AIE_CLR = {idle:'#1e1e30',fetching:'#ffd200',analyzing:'#00d4ff',generating:'#00d4ff',ready:'#00ff88',running:'#00ff88',paused:'#ffd200',error:'#ff2d55'};
+
+function aieSetProvider(v){
+  AIE.provider=v;
+  document.getElementById('aie-tog-claude').style.cssText='font-family:var(--mono);font-size:0.65rem;padding:5px 12px;border:none;cursor:pointer;letter-spacing:1px;transition:all .15s;background:'+(v==='claude'?'rgba(255,45,85,0.15)':'transparent')+';color:'+(v==='claude'?'var(--red)':'var(--muted)');
+  document.getElementById('aie-tog-ollama').style.cssText='font-family:var(--mono);font-size:0.65rem;padding:5px 12px;border:none;cursor:pointer;letter-spacing:1px;transition:all .15s;background:'+(v==='ollama'?'rgba(0,212,255,0.12)':'transparent')+';color:'+(v==='ollama'?'var(--cyan)':'var(--muted)');
+  document.getElementById('aie-ollama-model').style.display=v==='ollama'?'':'none';
+}
+
+function aieBuild(){
+  const c=document.getElementById('aie-slots');
+  if(!c||c.dataset.built)return;
+  c.dataset.built='1';
+  c.innerHTML='';
+  AIE.slots.forEach(s=>{
+    const d=document.createElement('div');
+    d.className='aie-slot';d.id='aie-slot-'+s.id;
+    d.innerHTML=`
+      <div class="aie-head" onclick="aieToggle(${s.id})">
+        <span class="aie-num">#${s.id+1}</span>
+        <span class="aie-dot s-idle" id="aie-dot-${s.id}"></span>
+        <input class="aie-svc" id="aie-svc-${s.id}" type="text" placeholder="service_name" value="${s.service}"
+          onclick="event.stopPropagation()" onchange="AIE.slots[${s.id}].service=this.value"/>
+        <input class="aie-port" id="aie-port-${s.id}" type="number" value="${s.port}"
+          onclick="event.stopPropagation()" onchange="AIE.slots[${s.id}].port=parseInt(this.value)||0"/>
+        <span class="aie-stlbl s-idle" id="aie-stlbl-${s.id}">IDLE</span>
+        <div class="aie-btns" onclick="event.stopPropagation()">
+          <button class="aie-btn-run"   id="aie-run-${s.id}"   onclick="aieRun(${s.id})">▶ RUN</button>
+          <button class="aie-btn-pause" id="aie-pause-${s.id}" onclick="aiePauseToggle(${s.id})" disabled>⏸ PAUSE</button>
+          <button class="aie-btn-stop"  id="aie-stop-${s.id}"  onclick="aieStop(${s.id})"  disabled>■ STOP</button>
+        </div>
+      </div>
+      <div class="aie-body" id="aie-body-${s.id}">
+        <div class="aie-prog-bar"><div class="aie-prog-fill" id="aie-prog-${s.id}"></div></div>
+        <div class="aie-meta" id="aie-meta-${s.id}">
+          <span class="aie-pill">port ${s.port}</span>
+        </div>
+        <div class="aie-log" id="aie-log-${s.id}"><span>No activity yet.</span></div>
+        <div class="aie-code" id="aie-code-${s.id}"></div>
+        <div class="aie-send-row" id="aie-send-${s.id}">
+          <span class="aie-send-info">Saved → <code id="aie-file-${s.id}">exploits/?_ai.py</code></span>
+          <button class="aie-send-btn" onclick="aieSend(${s.id})">➤ SEND EXPLOIT</button>
+        </div>
+      </div>`;
+    c.appendChild(d);
+  });
+}
+
+function aieToggle(id){AIE.slots[id].open=!AIE.slots[id].open;aieRender(id);}
+
+function aieRender(id,srv){
+  const s=AIE.slots[id];
+  if(srv){s.status=srv.status;s.progress=srv.progress||0;s.log=srv.log||s.log;s.exploit_code=srv.exploit_code||'';s.exploit_file=srv.exploit_file||'';s.flags_found=srv.flags_found||0;s.flows_count=srv.flows_count||0;}
+  const st=s.status;
+  const el=document.getElementById('aie-slot-'+id);if(el)el.className='aie-slot s-'+st;
+  const dot=document.getElementById('aie-dot-'+id);if(dot)dot.className='aie-dot s-'+st;
+  const lbl=document.getElementById('aie-stlbl-'+id);if(lbl){lbl.textContent=AIE_LBL[st]||st;lbl.className='aie-stlbl s-'+st;}
+  const prg=document.getElementById('aie-prog-'+id);if(prg){prg.style.width=(s.progress||0)+'%';prg.style.background=AIE_CLR[st]||'#222';}
+  const body=document.getElementById('aie-body-'+id);if(body)body.className='aie-body'+(s.open?' open':'');
+  const busy=['fetching','analyzing','generating','running'].includes(st);
+  const rb=document.getElementById('aie-run-'+id);if(rb)rb.disabled=busy;
+  const pb=document.getElementById('aie-pause-'+id);
+  if(pb){pb.disabled=!['running','paused'].includes(st);pb.textContent=st==='paused'?'▶ RESUME':'⏸ PAUSE';}
+  const sb=document.getElementById('aie-stop-'+id);if(sb)sb.disabled=st==='idle';
+  const logEl=document.getElementById('aie-log-'+id);
+  if(logEl&&s.log&&s.log.length){
+    logEl.innerHTML=s.log.slice(-40).map(l=>`<span class="${{ok:'lok',info:'linf',warn:'lwrn',error:'lerr'}[l.level]||'linf'}">[${l.ts}] ${(l.msg||'').replace(/</g,'&lt;')}</span>`).join('\n');
+    logEl.scrollTop=logEl.scrollHeight;
+  }
+  const cd=document.getElementById('aie-code-'+id);if(cd){cd.style.display=s.exploit_code?'block':'none';if(s.exploit_code)cd.textContent=s.exploit_code;}
+  const mt=document.getElementById('aie-meta-'+id);
+  if(mt){let p=`<span class="aie-pill">port ${s.port||'—'}</span>`;if(s.flows_count)p+=`<span class="aie-pill c">${s.flows_count} flows</span>`;if(s.flags_found)p+=`<span class="aie-pill g">${s.flags_found} flags</span>`;if(s.exploit_file)p+=`<span class="aie-pill r">exploit ready</span>`;mt.innerHTML=p;}
+  const sr=document.getElementById('aie-send-'+id);if(sr)sr.style.display=['ready','running','paused'].includes(st)?'flex':'none';
+  const fe=document.getElementById('aie-file-'+id);if(fe&&s.exploit_file)fe.textContent=s.exploit_file.split('/').pop();
+  const badge=document.getElementById('aie-global-badge');
+  if(badge){const act=AIE.slots.filter(x=>['fetching','analyzing','generating','running'].includes(x.status)).length;const rdy=AIE.slots.filter(x=>x.status==='ready').length;badge.textContent=act?(act+' AGENT'+(act>1?'S':'')+' ACTIVE'):rdy?(rdy+' EXPLOIT'+(rdy>1?'S':'')+' READY'):'5 SLOTS READY';badge.style.color=act?'var(--green)':rdy?'var(--cyan)':'var(--muted)';}
+}
+
+async function aieRun(id){
+  const svc=document.getElementById('aie-svc-'+id).value.trim();
+  const port=parseInt(document.getElementById('aie-port-'+id).value)||0;
+  if(!svc){toast('Enter service name first','err');return;}
+  AIE.slots[id].service=svc;AIE.slots[id].port=port;AIE.slots[id].open=true;
+  const model=document.getElementById('aie-ollama-model').value;
+  const r=await api('POST','/api/ai-exploits/'+id+'/run',{service:svc,port,ai_provider:AIE.provider,ollama_model:model});
+  if(r&&r.ok===false){toast(r.error||'Failed','err');return;}
+  toast('AI agent started ✓');aieStartPoll();
+}
+
+async function aiePauseToggle(id){
+  const st=AIE.slots[id].status;
+  await api('POST','/api/ai-exploits/'+id+'/'+(st==='paused'?'resume':'pause'));
+  aiePollAll();
+}
+
+async function aieStop(id){
+  await api('POST','/api/ai-exploits/'+id+'/stop');
+  AIE.slots[id].status='idle';AIE.slots[id].progress=0;aieRender(id);
+}
+
+async function aieSend(id){
+  const r=await api('POST','/api/ai-exploits/'+id+'/send');
+  if(r&&r.ok===false){toast(r.error||'Failed','err');return;}
+  toast('Exploit deployed ✓');aieStartPoll();
+}
+
+function aieRunAll(){AIE.slots.forEach(s=>{if(['idle','ready'].includes(s.status))aieRun(s.id);});}
+function aieStopAll(){AIE.slots.forEach(s=>aieStop(s.id));}
+
+async function aiePollAll(){
+  const r=await api('GET','/api/ai-exploits/status');
+  if(!Array.isArray(r))return;
+  r.forEach(srv=>{if(srv&&srv.id!==undefined)aieRender(srv.id,srv);});
+}
+
+function aieStartPoll(){
+  if(AIE.timer)return;
+  AIE.timer=setInterval(async()=>{
+    await aiePollAll();
+    const any=AIE.slots.some(s=>['fetching','analyzing','generating','running'].includes(s.status));
+    if(!any){clearInterval(AIE.timer);AIE.timer=null;}
+  },1500);
+}
+
+// ── Patch nav() to support ai-exploits page ──
+(function(){
+  const _nav=window.nav;
+  window.nav=function(el){
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    const pageEl=document.getElementById('page-'+el.dataset.page);
+    if(pageEl)pageEl.classList.add('active');
+    if(el.dataset.page==='discovery')startRadar();
+    if(el.dataset.page==='ai-exploits'){aieBuild();aiePollAll();aieLoadCfg();}
+    // Close mobile sidebar after navigation
+    closeMobileNav();
+  };
+})();
+
+</script>
+
+<!-- ══════════════════════════════════════════════
+     DEMO MODE — injected after original script
+     Bypasses login, fakes API, populates UI
+     ══════════════════════════════════════════════ -->
+<style>
+.demo-ribbon{position:fixed;top:0;right:0;z-index:9999;background:var(--purple,#a78bfa);color:#000;font-family:'Space Mono',monospace;font-size:0.5rem;font-weight:700;letter-spacing:2px;padding:3px 10px;border-bottom-left-radius:6px;pointer-events:none}
+</style>
+<div class="demo-ribbon">🦅 DEMO</div>
+
+<script>
+// ── DEMO: Override api() to return fake data ──────────────────────
+window.api = async function(method, path, body) {
+  await new Promise(r => setTimeout(r, 60 + Math.random()*80));
+
+  // Config
+  if (path === '/api/config') return {
+    vulnbox_ip:'10.60.85.1',vulnbox_user:'root',gameserver_ip:'10.10.0.1',
+    flag_submit_port:8080,flagid_port:8081,team_id:85,team_name:'Albania-1',
+    ip_template:'10.60.{id}.1',total_teams:87,tick_seconds:120,
+    flag_regex:'[A-Z0-9]{31}=',tulip_url:'http://localhost:3000',
+    s4dfarm_url:'http://localhost:5137',services:['web_challenge','db_service','auth_svc','api_gateway'],
+    wizard_done:true,ldf_enabled:true,ldf_rate:5,ldf_delay:0.2
+  };
+
+  // Secrets
+  if (path === '/api/secrets') return {
+    team_token_masked:'***a3f9k2',vulnbox_password_set:true,
+    vulnbox_ssh_key_set:false,s4dfarm_password_set:true,
+    claude_api_key_set:true,claude_api_key_masked:'sk-ant-***9W1Z08',
+    ollama_url:'http://localhost:11434'
+  };
+
+  // AI config
+  if (path === '/api/ai-exploits/config') return {
+    claude_api_key_set:true,claude_api_key_masked:'sk-ant-***9W1Z08',
+    ollama_url:'http://localhost:11434'
+  };
+
+  // AI exploit status — all 5 slots
+  if (path === '/api/ai-exploits/status') return [
+    {id:0,service:'web_challenge',port:8080,status:'running',progress:100,
+     flags_found:_demoFlags[0],flows_count:23,exploit_code:'#!/usr/bin/env python3\n# web_challenge exploit\nimport requests,threading\nTEAMS=[f"10.60.{i}.1" for i in range(87) if i!=85]\ndef run(ip):\n    try:\n        r=requests.post(f"http://{ip}:8080/login",json={"user":"admin","pass":"\'OR 1=1--"},timeout=4)\n        flag=r.json().get("flag","")\n        if flag: print(flag)\n    except: pass\nwith __import__("concurrent.futures").ThreadPoolExecutor(20) as ex: ex.map(run,TEAMS)',
+     exploit_file:'exploits/web_challenge_ai.py',error:'',ai_provider:'claude',
+     log:[
+       {ts:'14:02:11',msg:'FLAG #'+_demoFlags[0]+': A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z=',level:'ok'},
+       {ts:'14:02:09',msg:'FLAG #'+(_demoFlags[0]-1)+': B7X2L5M9K3P8Q1N4R6C0T7Y2W5Z=',level:'ok'},
+       {ts:'14:02:05',msg:'Targeting 86 enemy teams · threading 20',level:'info'},
+       {ts:'14:01:58',msg:'Exploit deployed → exploits/web_challenge_ai.py',level:'ok'},
+     ]},
+    {id:1,service:'db_service',port:5432,status:'running',progress:100,
+     flags_found:_demoFlags[1],flows_count:18,exploit_code:'#!/usr/bin/env python3\n# db_service exploit - SQL injection\nimport psycopg2\nTEAMS=[f"10.60.{i}.1" for i in range(87) if i!=85]\nfor ip in TEAMS:\n    try:\n        conn=psycopg2.connect(host=ip,port=5432,user="admin",password="\'OR\'1\'=\'1",dbname="ctf",connect_timeout=3)\n        cur=conn.cursor()\n        cur.execute("SELECT flag FROM flags LIMIT 1")\n        print(cur.fetchone()[0])\n    except: pass',
+     exploit_file:'exploits/db_service_ai.py',error:'',ai_provider:'claude',
+     log:[
+       {ts:'14:02:10',msg:'FLAG #'+_demoFlags[1]+': D4N7X1L3K9P2Q6M8R0C3T9Y4W7Z=',level:'ok'},
+       {ts:'14:01:55',msg:'SQL injection payload confirmed · 86 teams',level:'info'},
+       {ts:'14:01:49',msg:'Exploit deployed → exploits/db_service_ai.py',level:'ok'},
+     ]},
+    {id:2,service:'auth_svc',port:3000,status:'generating',progress:72,
+     flags_found:0,flows_count:11,exploit_code:'',exploit_file:'',error:'',ai_provider:'claude',
+     log:[
+       {ts:'14:02:08',msg:'Sending 11 flows to CLAUDE for analysis...',level:'info'},
+       {ts:'14:02:06',msg:'Filtered to 11 flag-out flows',level:'info'},
+       {ts:'14:02:03',msg:'Tulip returned 14 flows',level:'info'},
+       {ts:'14:02:01',msg:"Agent started for service 'auth_svc' port 3000",level:'info'},
+     ]},
+    {id:3,service:'',port:22,status:'idle',progress:0,flags_found:0,flows_count:0,exploit_code:'',exploit_file:'',error:'',ai_provider:'claude',log:[]},
+    {id:4,service:'',port:9000,status:'idle',progress:0,flags_found:0,flows_count:0,exploit_code:'',exploit_file:'',error:'',ai_provider:'claude',log:[]},
+  ];
+
+  // Vulnbox status
+  if (path.includes('/api/vulnbox/status')) return {
+    reachable:true,ip:'10.60.85.1',
+    services:[
+      {name:'web_challenge',status:'running',port:8080},
+      {name:'db_service',status:'running',port:5432},
+      {name:'auth_svc',status:'running',port:3000},
+      {name:'api_gateway',status:'unhealthy',port:443},
+    ],
+    cpu:23,mem_used:2.8,mem_total:4,disk_used:18,disk_total:50,
+    watchdog:true
+  };
+
+  // Tools status
+  if (path.includes('/api/tools/status') || path.includes('/api/tulip') || path.includes('/api/farm') || path.includes('/api/pcap')) return {
+    ok:true,tulip:{running:true,pid:1234,flows:14822},
+    s4dfarm:{running:true,pid:1235},
+    pcap:{running:true,last_sync:240,files:200}
+  };
+
+  // SLA check
+  if (path.includes('sla_check')) return {
+    services:[
+      {name:'web_challenge',up:true,latency:12},
+      {name:'db_service',up:true,latency:8},
+      {name:'auth_svc',up:true,latency:15},
+      {name:'api_gateway',up:false,latency:null},
+    ]
+  };
+
+  // Exploits list
+  if (path === '/api/exploits') return {exploits:[
+    {name:'web_rce.py',running:true,pid:14821,flags:_demoFlags[0],service:'web_challenge'},
+    {name:'db_sqli.py',running:true,pid:14844,flags:_demoFlags[1],service:'db_service'},
+    {name:'auth_bypass.py',running:true,pid:14901,flags:_demoFlags[2],service:'auth_svc'},
+    {name:'api_fuzz.py',running:false,pid:null,flags:0,service:'api_gateway'},
+  ]};
+
+  // Flag log
+  if (path.includes('/api/flags')) return {logs:[
+    {time:'14:02:11',flag:'A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z=',status:'accepted',service:'web_challenge'},
+    {time:'14:02:09',flag:'B7X2L5M9K3P8Q1N4R6C0T7Y2W5Z=',status:'accepted',service:'web_challenge'},
+    {time:'14:02:07',flag:'C1M4X8L2K7P3Q9N0R5C8T1Y6W3Z=',status:'accepted',service:'db_service'},
+    {time:'14:02:05',flag:'D4N7X1L3K9P2Q6M8R0C3T9Y4W7Z=',status:'rejected',service:'db_service'},
+    {time:'14:02:03',flag:'E8M1X5L9K4P7Q2N3R6C1T4Y8W2Z=',status:'accepted',service:'auth_svc'},
+  ],stats:{accepted:_demoFlags[3],rejected:23,queued:8,error:2}};
+
+  // Teams
+  if (path.includes('/api/teams') || path.includes('gameserver')) {
+    const names=['Italy','Germany','France','Poland','Spain','Czech','Romania','Serbia','Croatia','Bulgaria','Austria','Switzerland','Netherlands','Belgium','Portugal','Greece','Hungary','Slovakia','Slovenia','Denmark','Sweden','Finland','Norway','Estonia','Latvia','Lithuania','Ukraine','Moldova','Belarus','Russia'];
+    return {teams: Array.from({length:87},(_,i)=>({
+      id:i,
+      name: i===85?'Albania-1':`${names[i%names.length]}-${(i%4)+1}`,
+      ip:`10.60.${i}.1`,
+      flag_id:`flag_id_${i}`,
+    }))};
+  }
+
+  // LDF status
+  if (path === '/api/ldf/status') return {
+    running: true,
+    queue: 8,
+    stats: {
+      accepted:  _demoFlags[3],
+      rejected:  23,
+      submitted: _demoFlags[3] + 23,
+    }
+  };
+
+  if (path.includes('/api/ldf/logs')) return { logs:
+`[14:02:11] BATCH sent 5 flags → accepted:5  rejected:0  queue:8
+[14:02:09] ACCEPTED A3F9K2M8P1X7Q4N6R0C5T2Y9W1Z= (web_challenge/team_42)
+[14:02:09] ACCEPTED B7X2L5M9K3P8Q1N4R6C0T7Y2W5Z= (web_challenge/team_17)
+[14:02:09] ACCEPTED C1M4X8L2K7P3Q9N0R5C8T1Y6W3Z= (db_service/team_31)
+[14:02:09] ACCEPTED D4N7X1L3K9P2Q6M8R0C3T9Y4W7Z= (auth_svc/team_09)
+[14:02:09] ACCEPTED E8M1X5L9K4P7Q2N3R6C1T4Y8W2Z= (web_challenge/team_55)
+[14:01:58] BATCH sent 5 flags → accepted:4  rejected:1  queue:6
+[14:01:58] ACCEPTED F2X7L4M1K8P5Q3N9R2C6T0Y7W4Z= (web_challenge/team_71)
+[14:01:58] ACCEPTED G9M2X6L8K1P4Q7N5R3C9T2Y1W8Z= (db_service/team_03)
+[14:01:58] ACCEPTED H5X3L7M4K2P9Q8N1R7C4T6Y3W5Z= (auth_svc/team_28)
+[14:01:58] ACCEPTED I1M8X2L5K7P3Q4N9R0C1T8Y7W2Z= (web_challenge/team_44)
+[14:01:58] REJECTED J4X9L1M6K8P2Q5N3R8C7T4Y9W1Z= (expired — too old)
+[14:01:45] BATCH sent 5 flags → accepted:5  rejected:0  queue:4
+[14:01:32] BATCH sent 5 flags → accepted:5  rejected:0  queue:2
+[14:01:20] LDF started · rate:5/s · delay:0.2s · gameserver:10.10.0.1:8080
+[14:01:18] Queue initialized · 0 flags pending` };
+
+  // Users list
+  if (path === '/api/auth/users' || path.includes('/api/auth/users')) return { users: [
+    { username: 'admin',    role: 'admin',  must_change: false },
+    { username: 'g3rman0',  role: 'admin',  must_change: false },
+    { username: 'xh3ra',    role: 'viewer', must_change: false },
+    { username: 'bl1nk3r',  role: 'viewer', must_change: true  },
+  ]};
+
+  // Audit log
+  if (path.includes('/api/logs/audit')) return { logs: [
+    { time:'14:02:11', user:'admin',   action:'AI_EXPLOIT_RUN',       detail:'slot:2 svc:auth_svc provider:claude',         ip:'10.60.85.100' },
+    { time:'14:02:09', user:'admin',   action:'AI_EXPLOIT_SEND',      detail:'slot:0',                                      ip:'10.60.85.100' },
+    { time:'14:02:05', user:'g3rman0', action:'EXPLOIT_RUN',          detail:'name:db_sqli.py pid:14844',                   ip:'10.60.85.101' },
+    { time:'14:01:58', user:'admin',   action:'AI_EXPLOIT_RUN',       detail:'slot:1 svc:db_service provider:claude',       ip:'10.60.85.100' },
+    { time:'14:01:55', user:'admin',   action:'AI_CONFIG_UPDATED',    detail:'fields:claude_api_key',                       ip:'10.60.85.100' },
+    { time:'14:01:49', user:'admin',   action:'EXPLOIT_RUN',          detail:'name:web_rce.py pid:14821',                   ip:'10.60.85.100' },
+    { time:'14:01:45', user:'admin',   action:'TULIP_STARTED',        detail:'success',                                     ip:'10.60.85.100' },
+    { time:'14:01:42', user:'admin',   action:'FARM_STARTED',         detail:'success',                                     ip:'10.60.85.100' },
+    { time:'14:01:40', user:'admin',   action:'PCAP_SYNC_STARTED',    detail:'success',                                     ip:'10.60.85.100' },
+    { time:'14:01:38', user:'admin',   action:'LDF_STARTED',          detail:'rate:5 delay:0.2',                            ip:'10.60.85.100' },
+    { time:'14:01:35', user:'g3rman0', action:'LOGIN_SUCCESS',        detail:'role:admin',                                  ip:'10.60.85.101' },
+    { time:'14:01:32', user:'admin',   action:'WATCHDOG_STARTED',     detail:'success',                                     ip:'10.60.85.100' },
+    { time:'14:01:30', user:'admin',   action:'BACKUP_CREATED',       detail:'ts:20260511_140130',                          ip:'10.60.85.100' },
+    { time:'14:01:28', user:'admin',   action:'SSH_COMMAND',          detail:'docker ps',                                   ip:'10.60.85.100' },
+    { time:'14:01:25', user:'admin',   action:'CONFIG_UPDATED',       detail:'vulnbox_ip team_id gameserver_ip',            ip:'10.60.85.100' },
+    { time:'14:01:22', user:'xh3ra',   action:'LOGIN_SUCCESS',        detail:'role:viewer',                                 ip:'10.60.85.102' },
+    { time:'14:01:20', user:'admin',   action:'USER_ADDED',           detail:'username:xh3ra role:viewer',                  ip:'10.60.85.100' },
+    { time:'14:01:18', user:'admin',   action:'USER_ADDED',           detail:'username:g3rman0 role:admin',                 ip:'10.60.85.100' },
+    { time:'14:01:15', user:'admin',   action:'WIZARD_COMPLETE',      detail:'vulnbox:10.60.85.1 gameserver:10.10.0.1',     ip:'10.60.85.100' },
+    { time:'14:01:10', user:'admin',   action:'LOGIN_SUCCESS',        detail:'role:admin',                                  ip:'10.60.85.100' },
+    { time:'14:01:05', user:'admin',   action:'PASSWORD_CHANGED',     detail:'',                                            ip:'10.60.85.100' },
+  ]};
+
+  // Vulnbox status — reachable with services
+  if (path.includes('/api/vulnbox/status')) return {
+    reachable: true, online: true, ip: '10.60.85.1',
+    services: [
+      { name:'web_challenge', up:true,  status:'running',   port:8080, ports:'8080' },
+      { name:'db_service',    up:true,  status:'running',   port:5432, ports:'5432' },
+      { name:'auth_svc',      up:true,  status:'running',   port:3000, ports:'3000' },
+      { name:'api_gateway',   up:false, status:'unhealthy', port:443,  ports:'443'  },
+    ],
+    cpu:23, mem_used:2.8, mem_total:4, disk_used:18, disk_total:50, watchdog:true
+  };
+
+  // Tools status — everything online
+  if (path.includes('/api/tools/status')) return {
+    tulip: { running:true, pid:1234, url:'http://localhost:3000', flows:14822 },
+    farm:  { running:true, pid:1235, url:'http://localhost:5137' },
+    pcap:  { running:true, last_sync:'60s ago', count:200 },
+  };
+
+  // SSH — realistic docker ps output
+  if (path.includes('/api/vulnbox/ssh')) {
+    const cmd = body?.command || '';
+    if (cmd.includes('docker ps'))
+      return { ok:true, stdout:
+`CONTAINER ID   IMAGE                COMMAND                  CREATED        STATUS                    PORTS
+a1b2c3d4e5f6   web_challenge:v2     "python app.py"          3 hours ago    Up 3 hours                0.0.0.0:8080->8080/tcp
+b2c3d4e5f6a7   db_service:v1        "pg_ctl start -D /v…"   3 hours ago    Up 3 hours                0.0.0.0:5432->5432/tcp
+c3d4e5f6a7b8   auth_svc:v3          "node server.js"         3 hours ago    Up 3 hours                0.0.0.0:3000->3000/tcp
+d4e5f6a7b8c9   api_gateway:v1       "nginx -g 'daemon of…"  3 hours ago    Up 3 hours (unhealthy)    0.0.0.0:443->443/tcp` };
+    if (cmd.includes('free') || cmd.includes('mem'))
+      return { ok:true, stdout:
+`              total        used        free      shared  buff/cache   available
+Mem:           3.8G        2.8G        412M         34M        612M        982M
+Swap:          2.0G        128M        1.9G` };
+    if (cmd.includes('df') || cmd.includes('disk'))
+      return { ok:true, stdout:
+`Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        50G   18G   30G  38% /
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+/dev/sdb1       100G   4G   96G   4% /opt/pcap` };
+    if (cmd.includes('ss') || cmd.includes('ports') || cmd.includes('netstat'))
+      return { ok:true, stdout:
+`Netid  State   Recv-Q  Send-Q  Local Address:Port  Peer Address:Port
+tcp    LISTEN  0       128     0.0.0.0:8080        0.0.0.0:*
+tcp    LISTEN  0       128     0.0.0.0:5432        0.0.0.0:*
+tcp    LISTEN  0       128     0.0.0.0:3000        0.0.0.0:*
+tcp    LISTEN  0       128     0.0.0.0:443         0.0.0.0:*
+tcp    LISTEN  0       128     0.0.0.0:22          0.0.0.0:*` };
+    if (cmd.includes('backups') || cmd.includes('ls /'))
+      return { ok:true, stdout:
+`/home/kali/albania-backups:
+-rw-r--r-- 1 root root  84M May 11 14:01 backup_20260511_140130.tar.gz
+-rw-r--r-- 1 root root  83M May 11 13:01 backup_20260511_130015.tar.gz
+-rw-r--r-- 1 root root  82M May 11 12:00 backup_20260511_120008.tar.gz` };
+    if (cmd.includes('watchdog'))
+      return { ok:true, stdout:
+`Albania CTF Watchdog — running (PID 998)
+[14:02:00] All 4 services alive ✓
+[14:01:00] All 4 services alive ✓
+[14:00:12] api_gateway restarted (was unhealthy) ← auto-restart
+[13:59:00] All 4 services alive ✓` };
+    if (cmd.includes('firewall') || cmd.includes('iptables'))
+      return { ok:true, stdout:
+`Chain INPUT (policy DROP)
+target  prot  source          destination
+ACCEPT  all   10.10.0.1       anywhere     /* gameserver */
+ACCEPT  all   10.60.85.0/24   anywhere     /* our subnet */
+DROP    all   anywhere        anywhere` };
+    return { ok:true, stdout: `$ ${cmd}\ncommand executed successfully` };
+  }
+
+  // Generic POST ok
+  return { ok: true };
+};
+
+// ── DEMO: Live counters ───────────────────────────────────────────
+const _demoFlags = [187, 134, 91, 412];
+setInterval(()=>{
+  if(Math.random()<.35){
+    _demoFlags[Math.floor(Math.random()*3)]++;
+    _demoFlags[3]++;
+    // update LDF counters live
+    const acc = document.getElementById('ldfAcc');
+    const tot = document.getElementById('ldfTotal');
+    if(acc) acc.textContent = _demoFlags[3];
+    if(tot) tot.textContent = _demoFlags[3] + 23;
+  }
+},2000);
+
+// ── DEMO: Keep ALL pills green permanently (runs every 2s) ────────
+setInterval(() => {
+  const keep = {
+    hVPN:   'VPN ON',   hVbox:  'VULNBOX',
+    hPcap:  'PCAP',     hTulip: 'TULIP',
+  };
+  Object.entries(keep).forEach(([id, txt]) => {
+    const dot = document.getElementById(id);
+    const lbl = document.getElementById(id+'Lbl');
+    if (dot && dot.className !== 'dot dot-on') dot.className = 'dot dot-on';
+    if (lbl && lbl.textContent !== txt) lbl.textContent = txt;
+  });
+  // Keep tool dots green
+  ['tulipDot','farmDot','pcapDot','ldfDot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.className !== 'dot dot-on') el.className = 'dot dot-on';
+  });
+}, 2000);
+
+// ── DEMO: EKG — mostly UP, degraded rarely every 10s ─────────────
+const _ekgServices = [
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:false}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:false},{name:'api_gateway',up:false}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+  [{name:'web_challenge',up:true},{name:'db_service',up:true},{name:'auth_svc',up:true},{name:'api_gateway',up:true}],
+];
+let _ekgIdx = 0;
+setInterval(() => {
+  if (typeof ekgPush === 'function') {
+    ekgPush(_ekgServices[_ekgIdx % _ekgServices.length]);
+    _ekgIdx++;
+  }
+}, 10000);
+setInterval(()=>{
+  if(Math.random()<.35){
+    _demoFlags[Math.floor(Math.random()*3)]++;
+    _demoFlags[3]++;
+  }
+},2000);
+
+// ── DEMO: Bypass login — auto-launch as admin ─────────────────────
+window.TOKEN = 'demo-token-albania';
+window.USER  = { username:'admin', role:'admin' };
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('userBadge').textContent = 'admin ▾';
+
+  // ── FORCE topbar pills ONLINE immediately (before any API call) ──
+  const pills = {
+    hVPN:   {cls:'dot-on', txt:'VPN ON'},
+    hVbox:  {cls:'dot-on', txt:'VULNBOX'},
+    hPcap:  {cls:'dot-on', txt:'PCAP'},
+    hTulip: {cls:'dot-on', txt:'TULIP'},
+  };
+  Object.entries(pills).forEach(([id, val]) => {
+    const dot = document.getElementById(id);
+    const lbl = document.getElementById(id+'Lbl');
+    if (dot) dot.className = 'dot ' + val.cls;
+    if (lbl) lbl.textContent = val.txt;
+  });
+
+  // ── Pre-populate discoveredHosts BEFORE initPanel (overrides localStorage) ──
+  window.discoveredHosts = [
+    {id:0,  ip:'10.60.0.1',  label:'Italy-1',        alive:true},
+    {id:1,  ip:'10.60.1.1',  label:'Germany-3',       alive:true},
+    {id:2,  ip:'10.60.2.1',  label:'France-2',        alive:true},
+    {id:3,  ip:'10.60.3.1',  label:'Poland-4',        alive:false},
+    {id:4,  ip:'10.60.4.1',  label:'Spain-1',         alive:true},
+    {id:5,  ip:'10.60.5.1',  label:'Czech-2',         alive:true},
+    {id:6,  ip:'10.60.6.1',  label:'Romania-1',       alive:true},
+    {id:7,  ip:'10.60.7.1',  label:'Serbia-3',        alive:false},
+    {id:8,  ip:'10.60.8.1',  label:'Croatia-2',       alive:true},
+    {id:9,  ip:'10.60.9.1',  label:'Bulgaria-1',      alive:true},
+    {id:10, ip:'10.60.10.1', label:'Austria-4',       alive:true},
+    {id:11, ip:'10.60.11.1', label:'Switzerland-2',   alive:true},
+    {id:12, ip:'10.60.12.1', label:'Netherlands-1',   alive:false},
+    {id:13, ip:'10.60.13.1', label:'Belgium-3',       alive:true},
+    {id:14, ip:'10.60.14.1', label:'Portugal-2',      alive:true},
+    {id:15, ip:'10.60.15.1', label:'Greece-1',        alive:true},
+    {id:16, ip:'10.60.16.1', label:'Hungary-4',       alive:true},
+    {id:17, ip:'10.60.17.1', label:'Slovakia-2',      alive:true},
+    {id:18, ip:'10.60.18.1', label:'Slovenia-1',      alive:true},
+    {id:19, ip:'10.60.19.1', label:'Denmark-3',       alive:false},
+    {id:20, ip:'10.60.20.1', label:'Sweden-2',        alive:true},
+    {id:21, ip:'10.60.21.1', label:'Finland-1',       alive:true},
+    {id:22, ip:'10.60.22.1', label:'Norway-3',        alive:true},
+    {id:23, ip:'10.60.23.1', label:'Estonia-2',       alive:true},
+    {id:24, ip:'10.60.24.1', label:'Latvia-1',        alive:false},
+    {id:25, ip:'10.60.25.1', label:'Lithuania-4',     alive:true},
+    {id:26, ip:'10.60.26.1', label:'Ukraine-2',       alive:true},
+    {id:27, ip:'10.60.27.1', label:'Moldova-1',       alive:true},
+    {id:30, ip:'10.60.30.1', label:'Turkey-3',        alive:true},
+    {id:35, ip:'10.60.35.1', label:'Israel-2',        alive:true},
+    {id:40, ip:'10.60.40.1', label:'Armenia-1',       alive:false},
+    {id:45, ip:'10.60.45.1', label:'Georgia-3',       alive:true},
+    {id:50, ip:'10.60.50.1', label:'Cyprus-2',        alive:true},
+    {id:55, ip:'10.60.55.1', label:'Malta-1',         alive:true},
+    {id:60, ip:'10.60.60.1', label:'Luxembourg-2',    alive:true},
+    {id:65, ip:'10.60.65.1', label:'Iceland-1',       alive:true},
+    {id:70, ip:'10.60.70.1', label:'Belarus-3',       alive:false},
+    {id:75, ip:'10.60.75.1', label:'Serbia-2',        alive:true},
+    {id:80, ip:'10.60.80.1', label:'Kosovo-1',        alive:true},
+    {id:83, ip:'10.60.83.1', label:'Macedonia-2',     alive:true},
+    {id:84, ip:'10.60.84.1', label:'Montenegro-1',    alive:true},
+    {id:85, ip:'10.60.85.1', label:'🦅 Albania-1 (US)',alive:true},
+    {id:86, ip:'10.60.86.1', label:'Bosnia-3',        alive:true},
+  ];
+
+  // ── Pre-fill SSH terminal with realistic already-executed commands ──
+  const sshOut = document.getElementById('sshOut');
+  if (sshOut) sshOut.textContent =
+`admin@vulnbox:~$ docker ps
+CONTAINER ID   IMAGE                COMMAND                  CREATED       STATUS                    PORTS
+a1b2c3d4e5f6   web_challenge:v2     "python app.py"          3 hours ago   Up 3 hours                0.0.0.0:8080->8080/tcp
+b2c3d4e5f6a7   db_service:v1        "pg_ctl start -D /v…"   3 hours ago   Up 3 hours                0.0.0.0:5432->5432/tcp
+c3d4e5f6a7b8   auth_svc:v3          "node server.js"         3 hours ago   Up 3 hours                0.0.0.0:3000->3000/tcp
+d4e5f6a7b8c9   api_gateway:v1       "nginx -g daemon…"       3 hours ago   Up 3 hours (unhealthy)    0.0.0.0:443->443/tcp
+
+admin@vulnbox:~$ free -h
+              total        used        free      shared  buff/cache   available
+Mem:           3.8G        2.8G        412M         34M        612M        982M
+Swap:          2.0G        128M        1.9G
+
+admin@vulnbox:~$ ss -tlnp
+Netid  State   Recv-Q  Send-Q  Local Address:Port   Process
+tcp    LISTEN  0       128     0.0.0.0:8080         users:("python",pid=1821)
+tcp    LISTEN  0       128     0.0.0.0:5432         users:("postgres",pid=1844)
+tcp    LISTEN  0       128     0.0.0.0:3000         users:("node",pid=1901)
+tcp    LISTEN  0       128     0.0.0.0:443          users:("nginx",pid=1755)
+tcp    LISTEN  0       128     0.0.0.0:22           users:("sshd",pid=998)
+
+admin@vulnbox:~$ df -h
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        50G   18G   30G  38% /
+/dev/sdb1       100G    4G   96G   4% /opt/pcap
+tmpfs           1.9G     0  1.9G   0% /dev/shm
+
+admin@vulnbox:~$ who
+admin    pts/0   2026-05-11 14:01 (10.60.85.100)
+g3rman0  pts/1   2026-05-11 14:01 (10.60.85.101)
+xh3ra    pts/2   2026-05-11 14:02 (10.60.85.102)
+
+admin@vulnbox:~$ _`;
+
+  // ── Pre-fill vulnbox quickOut ──
+  const quickOut = document.getElementById('quickOut');
+  if (quickOut) quickOut.textContent =
+`admin@vulnbox:~$ docker ps --format '{{.Names}}\t{{.Ports}}\t{{.Status}}'
+web_challenge   0.0.0.0:8080->8080/tcp   Up 3 hours
+db_service      0.0.0.0:5432->5432/tcp   Up 3 hours
+auth_svc        0.0.0.0:3000->3000/tcp   Up 3 hours
+api_gateway     0.0.0.0:443->443/tcp     Up 3 hours (unhealthy)`;
+
+  initPanel();
+
+  // ── Render discovery hosts immediately ──
+  setTimeout(() => {
+    if (typeof renderRadarHosts === 'function') renderRadarHosts();
+    if (typeof ldfRefresh === 'function') ldfRefresh();
+    if (typeof loadUsers === 'function') loadUsers();
+    if (typeof loadAudit === 'function') loadAudit();
+  }, 300);
+
+  // ── After initPanel: force pills online again (refreshVulnbox may override) ──
+  setTimeout(() => {
+    Object.entries(pills).forEach(([id, val]) => {
+      const dot = document.getElementById(id);
+      const lbl = document.getElementById(id+'Lbl');
+      if (dot) dot.className = 'dot ' + val.cls;
+      if (lbl) lbl.textContent = val.txt;
+    });
+    // Also force tools dots
+    ['tulipDot','farmDot','pcapDot','ldfDot'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.className = 'dot dot-on';
+    });
+    ['tulipStatus','farmStatus','pcapStatus'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = 'Running';
+    });
+    const ldfSt = document.getElementById('ldfStatusTxt');
+    if (ldfSt) ldfSt.textContent = 'Running';
+    const ldfDot2 = document.getElementById('ldfDot');
+    if (ldfDot2) ldfDot2.className = 'dot dot-on';
+  }, 800);
+});
+</script>
+</body>
+</html>
